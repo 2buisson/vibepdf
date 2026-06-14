@@ -110,7 +110,7 @@ Each added List item is validated asynchronously to determine its Validation sta
 - A file that cannot be parsed as a valid PDF resolves to *error-corrupt*, shown as "Could not read file" (e.g., an image renamed to `.pdf`).
 - A password-protected/encrypted file resolves to *error-password*, shown as "Password protected".
 - A *valid* List item displays its page count.
-- A validation that does not complete is treated as a parse failure and resolves to *error-corrupt* ("Could not read file"); a per-file wall-clock guard bounds an unresponsive parse. `[ASSUMPTION: the guard is per-file wall-clock and its exact threshold is tuned in architecture so large but valid PDFs are not false-flagged (NFR-1); the legacy value was 30 s.]`
+- A validation that does not complete is treated as a parse failure and resolves to *error-corrupt* ("Could not read file"); a per-file wall-clock guard bounds an unresponsive parse. `[ASSUMPTION: the guard is per-file wall-clock and its exact threshold is tuned in architecture so large but valid PDFs are not false-flagged (NFR-1); the value is 5 s.]`
 - A List item remains selectable, removable, and reorderable at any time regardless of Validation status (including while *checking*).
 
 #### FR-3: Remove a file
@@ -341,7 +341,7 @@ PDF Junior is a **merge-only** utility. It is not, and in v1 will not become:
 
 *Every `[ASSUMPTION]` in this document, surfaced for confirmation:*
 
-- **§4.1 FR-2** — The validation guard is per-file wall-clock; its exact threshold is tuned in architecture so large but valid PDFs are not false-flagged (legacy used 30 s).
+- **§4.1 FR-2** — The validation guard is per-file wall-clock (5 s); its exact threshold is tuned in architecture so large but valid PDFs are not false-flagged.
 - **§4.3 FR-7** — The app keeps no memory of the last output location between sessions (carries the spirit of legacy decision #11; the native Save dialog's own MRU is OS behavior).
 - **§4.3 FR-8** — Progress-indicator determinacy (determinate vs. indeterminate) depends on the chosen PDF library's API and is resolved in architecture.
 

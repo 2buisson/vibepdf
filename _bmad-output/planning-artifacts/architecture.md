@@ -239,7 +239,7 @@ in the scaffolded project).
   (`Task.Run`) with **bounded concurrency** (`SemaphoreSlim`, small cap) so adding
   many files doesn't thrash. A **per-file wall-clock guard**
   (`CancellationTokenSource(timeout)`) resolves a hung parse to `ErrorCorrupt`.
-  Threshold = a named constant, **default 30 s** (legacy value), tuned so large
+  Threshold = a named constant, **default 5 s**, tuned so large
   valid PDFs aren't false-flagged (FR-2, NFR-1).
 - **Merge execution:** single `Task.Run` + `CancellationToken`. Progress reported
   via `IProgress<double>`, **determinate by file count** (we own the per-file

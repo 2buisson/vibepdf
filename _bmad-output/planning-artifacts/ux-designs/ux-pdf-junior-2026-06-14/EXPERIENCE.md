@@ -2,165 +2,204 @@
 name: PDF Junior
 status: final
 sources:
-  - {planning_artifacts}/prds/prd-pdf-junior-2026-06-14/prd.md
-  - {planning_artifacts}/prds/prd-pdf-junior-2026-06-14/addendum.md
-  - {planning_artifacts}/prds/prd-pdf-junior-2026-06-14/reconcile-ux.md
+  - ../../prds/prd-pdf-junior-2026-06-14/prd.md
+  - ../../prds/prd-pdf-junior-2026-06-14/addendum.md
+  - ../../prds/prd-pdf-junior-2026-06-14/reconcile-ux.md
+  - ../../architecture.md
 updated: 2026-06-14
 ---
 
 # PDF Junior — Experience Spine
 
-> Single-window Windows 11 desktop app, native C# / WinUI 3 (Windows App SDK). `DESIGN.md` is the visual-identity reference; this spine owns IA, behavior, states, interactions, and flows. Tokens are cross-referenced as `{path.to.token}` into `DESIGN.md`. Both spines win on conflict with any mock.
+> Single-window Windows 11 desktop utility. C# / WinUI 3 (Fluent Design inherited wholesale). Paired with `DESIGN.md` (visual identity — zero brand-layer overrides). This spine owns *how it works*.
 
 ## Foundation
 
-**Form factor:** one persistent desktop window, no navigation chrome (no tabs, nav rail, or sidebar nav). Every state is an in-place transition within that single screen. Default 900×640, minimum 640×480, resizable/maximizable.
-
-**UI system:** WinUI 3 / Fluent Design, inherited wholesale. Behavior is built on native controls — `ListView`, `Button` / `AccentButton`, `InfoBar`, `ContentDialog`, `ProgressBar`, and the native `FileOpenPicker` / `FileSavePicker`. This spine specifies the **behavioral delta** only; visual specs live in `DESIGN.md.Components`.
-
-**Privacy is a felt property, not a setting:** all processing is local, there is no account, no network in normal operation, and **no persistence of any kind** between sessions — relaunch always starts empty, at default geometry, with no recalled output location. The experience never asks the user to trust a promise it can't see.
+Single-surface native Windows 11 desktop app. WinUI 3 via Windows App SDK, C# / MVVM (CommunityToolkit.Mvvm). The UI system is Fluent Design, inherited wholesale — `DESIGN.md` documents the inheritance, not overrides. One window, one screen, no navigation chrome. No account, no network, no persistence between sessions. English only for v1.
 
 ## Information Architecture
 
-One screen, four persistent regions plus transient surfaces.
-
-| Region | Position | Purpose |
+| Surface | Content | Purpose |
 |---|---|---|
-| Title bar | Top, full width | Native Windows title bar, Mica backdrop. No app controls. |
-| File list (sidebar) | Left, `{spacing.sidebar-default}` wide | The ordered, scrollable list of added PDFs. Merge output follows this order. Drag-resizable (`{spacing.sidebar-min}`–`{spacing.sidebar-max}`). |
-| Preview toolbar | Top of right pane, right-aligned | `[Move up] [Move down]` grouped, gap, then `[Remove]` — all act on the selected file. |
-| Preview pane | Right, fills remainder | Read-only render of the selected file; fit-to-width, vertical scroll only. |
-| Progress bar | Full width, above action bar | Thin `{components.progressbar-merge}`; visible only during a merge running >2s. |
-| Action bar | Bottom, full width, right-aligned | `[Add PDF(s)]` then `[Merge]` (`{components.button-merge}`). No filename field — output name is set in the Save dialog. |
+| Title bar | Native Windows, Mica backdrop | Window chrome — drag, minimize, maximize, close |
+| Sidebar (left pane) | Scrollable File list (`ListView`, single-select) | Ordered list of added PDFs; each item shows filename + validation status/page count |
+| Drag divider | Vertical resize handle between sidebar and preview | User-adjustable pane split; resets each launch |
+| Preview toolbar | **[Move up] [Move down]** (grouped) — gap — **[Remove]** | Reorder and remove the Selected file; all actions require a selection |
+| Preview pane (right) | Read-only rendered PDF pages, fit-to-width, vertical scroll | View the Selected file's content; placeholder states when nothing selected, checking, or flagged |
+| Progress indicator | Thin `ProgressBar` above the Action bar | Visible only during merges exceeding 2 seconds; determinate by file count |
+| Action bar (bottom) | Right-aligned: **[Add PDF(s)] [Merge]** | Primary actions — add files and trigger merge |
 
-**Transient surfaces** (overlays/inline, not separate screens): native File picker, native Save dialog (folder + filename + OS overwrite prompt), the close-during-merge `ContentDialog`, and the success/error `InfoBar` banners.
+**Transient surfaces** (overlay or inline, never separate screens):
+- Native `FileOpenPicker` (Add PDF(s)) — multi-select, `.pdf` filter.
+- Native `FileSavePicker` (Merge) — filename + folder + overwrite in one step.
+- `ContentDialog` (window-close guard during merge).
+- `InfoBar` (success banner, error banner) — inline, at most one visible at a time.
 
-The IA closes cleanly: every stated user need maps to a region — *add* and *order* and *see status* → File list; *inspect* → Preview pane; *reorder/remove* → Preview toolbar; *produce output* → Action bar + Save dialog; *recover/confirm* → banners + close-guard dialog.
+**Window constraints:** minimum 640×480, default 900×640, resizable and maximizable.
 
-→ See `mockups/` for any rendered key screens (added at Finalize if produced). Spine wins on conflict.
+The entire IA is in-place transitions within one persistent window. No tabs, no navigation rail, no sidebar nav, no pages, no routing.
+
+**Sidebar drag-resize:** min width 200px, max 50% of window, default 280px. Drag affordance is a standard WinUI GridSplitter or equivalent. Double-click the divider to reset to default width. Width resets on each launch (PRD §9.1 — no persistence).
 
 ## Voice and Tone
 
-Microcopy only; visual/brand posture lives in `DESIGN.md`. The governing rule is **silent by default**: no instructional copy appears except the two empty states. Every other state is quiet. The register is office-worker/student plain English; developer jargon ("concatenate", "render pipeline", "stdout") is banned.
+Microcopy principles. Brand voice and aesthetic posture live in `DESIGN.md`.
 
-**Per-situation tone:**
+### Per-situation tone
 
-| Situation | Tone | Example |
+| Situation | Tone | Intent |
 |---|---|---|
-| Empty state | Warm invitation, single line | "Add PDFs to get started" |
-| File error | Factual, non-blaming | "Password protected" (never "bad file") |
-| Merge success | Brief, affirming, one optional action | "Merged successfully — report.pdf" + Open folder |
-| Merge failure | Honest, specific reason if available, **no apology filler** | "Not enough space on E:\." / "Merge failed. Try again or check the files." |
-| Disabled Merge | Helpful — names the fix | "Remove or replace files with errors" |
-| Overwrite | **OS-owned** (native Save dialog) | (the app authors none) |
+| Empty file list | Warm invitation, single line | The only moment the app speaks unprompted; one calm sentence, no exclamation |
+| Empty preview (nothing selected) | Neutral pointer | Tell the user what to do to fill this space; nothing more |
+| File checking | Factual, transient | A status word, not a message — it will resolve on its own |
+| File valid | Silent | Page count appears; no congratulatory copy |
+| File flagged (error) | Factual, non-blaming | State the problem plainly — "Password protected", "Could not read file" — never "Error:", never the user's fault |
+| Merge disabled (tooltip) | Factual, actionable | Name the blocking condition and imply the remedy; distinguish empty-list from flagged-files-present |
+| Merge in progress | Silent (sub-2 s) or progress bar only (>2 s) | No text, no spinner, no "Merging..." label. Absence of feedback for fast merges is the intended design, not a defect |
+| Merge success | Brief, affirming, one optional action | Name the output file, offer Open folder, then get out of the way. No celebration |
+| Merge failure | Honest, specific reason when available, **no apology filler** | "Merge failed — Not enough space on E:\." Not "Sorry, something went wrong!" The user needs a reason, not sympathy |
+| Overwrite warning | Neutral, factual (OS-owned) | The native Save dialog handles this; the app adds nothing |
+| Close-during-merge guard | Calm warning, default is safe | The default button keeps merging; closing is the deliberate second option |
 
-**Canonical strings** (locked; downstream copy must match):
+### General rules
 
-| Where | String |
-|---|---|
-| Empty list (sidebar) | `Add PDFs to get started` |
-| Empty preview | `Select a file to preview it` |
-| Checking caption | `Checking…` |
-| Valid caption | `{N} pages` (and `1 page`) |
-| Password caption | `Password protected` |
-| Corrupt caption | `Could not read file` |
-| Flagged preview notice | `This file has an issue — it will be excluded from the merge.` |
-| Disabled Merge — empty/no-valid | `Add at least one PDF to merge` |
-| Disabled Merge — flagged present | `Remove or replace files with errors` |
-| Disabled Merge — still checking | `Wait for files to finish checking` |
-| Success banner | `Merged successfully — {filename}` (action: `Open folder`) |
-| Failure with reason | `Not enough space on E:\.` · `Access denied` · `File not found: {name}` |
-| Failure generic fallback | `Merge failed. Try again or check the files.` |
-| Open-folder failure | `Folder not found` |
-| Close-during-merge dialog | Title `Stop the merge?` / Body `A merge is in progress. Closing now cancels it; the output file may be incomplete.` / Buttons `Keep merging` (default), `Close anyway` |
-| Buttons | `Add PDF(s)` · `Merge` · `Move up` · `Move down` · `Remove` · `Open folder` |
+- **Silent by default.** The only instructional copy is the empty file list and empty preview placeholders. Every other state communicates through control states (enabled/disabled, selected/unselected) and inline status labels.
+- **No apology filler.** "Merge failed — Access denied" not "We're sorry, but the merge could not be completed."
+- **No developer jargon.** "Could not read file" not "Parse error"; "Password protected" not "Encrypted document detected."
+- **No exclamation marks.** The app is calm.
+- **Specific failure reasons are the expected default.** The generic fallback ("Merge failed. Try again or check the files.") fires only when the underlying error provides no actionable detail. Every mapped failure reason names the specific problem.
+
+## Microcopy Inventory
+
+Canonical strings. Implementation must match these verbatim (`UiStrings.cs` in the architecture). Final wording — the UX spec owns these.
+
+| ID | Context | String | Style | Notes |
+|---|---|---|---|---|
+| MC-1 | Empty file list placeholder | Add PDFs to get started | Body | Centered in sidebar when File list is empty |
+| MC-2 | Empty preview placeholder | Select a file to preview it | Body | Centered in preview pane when nothing selected |
+| MC-3 | List item — checking status | Checking… | Caption | Transient; resolves to valid or error |
+| MC-4 | List item — valid status | {N} pages | Caption | Singular: "1 page" |
+| MC-5 | List item — error-password | Password protected | Caption, critical color | |
+| MC-6 | List item — error-corrupt | Could not read file | Caption, critical color | |
+| MC-7 | Preview — checking placeholder | Checking… | Body | Centered in preview pane while selected file is validating |
+| MC-8 | Preview — password exclusion | This file is password protected and will be excluded from the merge. | Body | Centered in preview pane; no preview content rendered |
+| MC-9 | Preview — corrupt exclusion | This file could not be read and will be excluded from the merge. | Body | Centered in preview pane; no preview content rendered |
+| MC-10 | Merge disabled tooltip — no valid files | Add at least one PDF to merge | Caption | Shown on hover/focus of disabled Merge button when list is empty or all items are flagged |
+| MC-11 | Merge disabled tooltip — flagged files present | Remove files with errors before merging | Caption | Shown when ≥1 flagged file is present (distinct from MC-10) |
+| MC-12 | Merge disabled tooltip — still checking | Waiting for files to finish checking | Caption | Shown when ≥1 file is still in checking state |
+| MC-13 | Success banner | Merged successfully — {filename} | Body | InfoBar Severity=Success; auto-dismiss ~8 s; manually closable |
+| MC-14 | Success banner action | Open folder | Button label | Opens File Explorer to the output folder |
+| MC-15 | Error — disk full | Merge failed — Not enough space on {drive}. | Body | InfoBar Severity=Error; manual dismiss only |
+| MC-16 | Error — access denied | Merge failed — Access denied | Body | |
+| MC-17 | Error — source file missing | Merge failed — File not found: {name} | Body | |
+| MC-18 | Error — generic fallback | Merge failed. Try again or check the files. | Body | Only when no specific reason is available |
+| MC-19 | Open folder — folder gone | Folder not found | Body | Replaces the explorer launch when the output folder no longer exists |
+| MC-20 | Close guard — dialog title | Merge in progress | Subtitle | ContentDialog title |
+| MC-21 | Close guard — dialog body | A merge is still running. Closing now may leave an incomplete file at the destination. | Body | |
+| MC-22 | Close guard — primary button (default) | Keep merging | Button | Default action; safe choice |
+| MC-23 | Close guard — secondary button | Close anyway | Button | Destructive; cancels the merge cooperatively |
 
 ## Component Patterns
 
-Behavioral rules; visual specs live in `DESIGN.md.Components`.
+Behavioral. Visual specs live in `DESIGN.md.Components`.
 
 | Component | Use | Behavioral rules |
 |---|---|---|
-| Two-line list item (`{components.list-item-twoline}`) | File list | Click selects the row and loads its preview (always in sync). Line 2 is the always-visible status caption — never hover-revealed. Remains selectable, removable, and reorderable in **any** status, including *checking*. |
-| Preview toolbar buttons (`{components.button-standard}`) | Top of right pane | All act on the selected file. `Move up` disabled when selected is first; `Move down` disabled when last; all three disabled when nothing is selected. `Remove` is gap-separated from the Move group to prevent accidental activation. |
-| Merge button (`{components.button-merge}`) | Action bar | Enabled only when ≥1 valid file, zero flagged, none checking. Disabled state shows the cause-specific tooltip (see State Patterns). Press dismisses any visible banner, then opens the Save dialog. |
-| Add PDF(s) button (`{components.button-standard}`) | Action bar | Opens the native multi-select File picker filtered to `.pdf`. |
-| InfoBar (`{components.infobar-success}` / `{components.infobar-error}`) | Below preview / above action bar | At most one banner at a time. Success auto-dismisses ~8s and is manually closable; Error is manual-dismiss only. Starting a new Merge clears any visible banner first. |
-| ProgressBar (`{components.progressbar-merge}`) | Above action bar | Appears only after a merge passes 2s; bar only, no label; determinate when per-file progress is reported, else indeterminate. |
-| ContentDialog (`{components.dialog-close-guard}`) | Modal | Close-during-merge guard. `Keep merging` is default; `Close anyway` cancels cooperatively (a partial output file may remain — no atomicity guarantee, PRD FR-11/FR-12). |
+| **File list** (`ListView`) | Sidebar | Single-select. Clicking an item selects it and loads its preview (FR-5). Selection and preview are always in sync. Items display filename (Body) + validation status or page count (Caption). Newly added files append to the bottom. No auto-scroll — the list does not scroll to reveal newly added items; the user scrolls manually if needed. Duplicate paths (case-insensitive) are silently skipped. |
+| **List item** | File list row | Shows filename and a caption-styled secondary line: "Checking…" / "{N} pages" / "Password protected" / "Could not read file". Selectable, removable, and reorderable at all times regardless of validation status (including while checking). Flagged-file captions use the critical color (`{colors.critical}`). |
+| **Preview pane** (`ScrollViewer`) | Right pane | Read-only. Renders PDF pages as bitmaps fit-to-width with vertical scroll only. No editing, annotation, zoom, or page controls. When the selected file is flagged, the pane shows the exclusion notice (MC-8 or MC-9) centered — no preview content is rendered, and the notice alone is sufficient feedback. When nothing is selected: MC-2. When the file list is empty: sidebar shows MC-1. |
+| **Preview toolbar** | Top of right pane | Right-aligned: **[Move up] [Move down]** grouped, then a visual gap, then **[Remove]**. All three act on the Selected file. All disabled when nothing is selected. Move up disabled at position 1; Move down disabled at last position. The gap between Move and Remove prevents accidental removal. |
+| **Move up / Move down** | Preview toolbar | Move the Selected file one position in the File list. **Selection follows the moved item** — it stays selected at its new position. **The preview pane content is unchanged** (same file, no reload, no flicker). The File list visually reorders. |
+| **Remove** | Preview toolbar | Removes the Selected file from the File list. After removal, selection clears — no neighbor is auto-selected. Preview pane returns to MC-2 state. |
+| **Add PDF(s)** button | Action bar | Opens the native `FileOpenPicker` filtered to `.pdf`, multi-select enabled. Selected files are appended to the File list; each enters *checking* status (FR-2). Cancelling the picker is a silent no-op. Always enabled. |
+| **Merge** button | Action bar | `AccentButtonStyle`. Enabled only when ≥1 valid file, 0 flagged files, 0 checking files (FR-10). When disabled, a tooltip explains why (MC-10, MC-11, or MC-12 — three distinct messages for three distinct blocking conditions). Pressing Merge **immediately dismisses any visible success/error banner** before opening the Save dialog. |
+| **InfoBar** (success) | Inline banner | Severity=Success. Shows MC-13 with an **Open folder** action button (MC-14). Auto-dismisses after ~8 seconds; manually closable before then. At most one banner (success or error) visible at a time. |
+| **InfoBar** (error) | Inline banner | Severity=Error. Shows the specific failure reason (MC-15–MC-18). Manual dismiss only — no auto-dismiss. At most one banner visible at a time. |
+| **ProgressBar** | Above Action bar | Thin, determinate (progress by file count — architecture owns the per-file import loop). Appears **only** after a merge has been running for 2 seconds. Sub-2-second merges intentionally show no progress affordance at all — no flash, no spinner, no "Merging…" text. Absence of feedback is the designed behavior. |
+| **ContentDialog** (close guard) | Overlay | Appears when the user attempts to close the window during a merge (FR-12). Title: MC-20. Body: MC-21. Primary (default): MC-22 ("Keep merging"). Secondary: MC-23 ("Close anyway"). Close-anyway cancels the merge cooperatively; a partial file may remain. |
+| **Drag divider** | Between sidebar and preview | Resizable. Double-click resets to default width (280px). Cursor changes to col-resize on hover. Min 200px, max 50% of window (per IA section). Resets on launch. |
 
 ## State Patterns
 
 | State | Surface | Treatment |
 |---|---|---|
-| Empty list | Sidebar | Muted, centered `Add PDFs to get started` — text only, no glyph (`{colors.text-secondary}`). |
-| Empty preview (nothing selected) | Preview pane | Muted, centered `Select a file to preview it` — text only. |
-| Checking | Row + preview | Row caption `Checking…` (`{colors.text-secondary}`); preview pane shows `Checking…`, **text only, no spinner**. A per-file wall-clock guard resolves a never-completing check to *error-corrupt* so an item never stays permanently non-interactive (threshold tuned in architecture; legacy was 30s). |
-| Valid | Row + preview | Row caption `{N} pages`; preview renders fit-to-width, vertical scroll only, no editing/annotation/page controls. |
-| Flagged — password | Row + preview | Row caption `Password protected` in `{colors.error-text}`; preview shows the flagged notice; no preview content required (encrypted files generally can't render). |
-| Flagged — corrupt | Row + preview | Row caption `Could not read file` in `{colors.error-text}`; preview attempts to render whatever partial content it can, with the flagged notice; if nothing renders, the notice alone is sufficient feedback. |
-| Merge running ≤2s | Whole window | **No chrome at all** — no flash, no spinner, no bar. Absence of feedback is intended. The UI locks for execution (see the >2s row) but the merge finishes before any indicator would appear. |
-| Merge running >2s | Above action bar | Thin `{components.progressbar-merge}` appears; UI locked for the **execution phase only** — File list read-only, Preview toolbar + `Add PDF(s)` + `Merge` disabled, **preview stays scrollable**, window-close guard responsive (NFR-1). |
-| Merge success | Below preview / above action bar | `{components.infobar-success}`: `Merged successfully — {filename}` with `Open folder`. Auto-dismiss ~8s + manual close. File list preserved. |
-| Merge failure | Same | `{components.infobar-error}`: specific reason preferred, else `Merge failed. Try again or check the files.` Manual dismiss only. A partial/incomplete output file **may remain** at the destination (no atomicity guarantee, PRD FR-11). UI unlocks; file list preserved for retry. |
-| Open folder — missing | Inline | If the output folder no longer exists, show inline `Folder not found` instead of failing. |
-| Disabled Merge | Action bar tooltip | Three distinct hover tooltips by cause: empty/no-valid → `Add at least one PDF to merge`; any flagged → `Remove or replace files with errors`; any still checking → `Wait for files to finish checking`. |
-| Close during merge | Modal | `{components.dialog-close-guard}` "Stop the merge?" — `Keep merging` (default) / `Close anyway` (cancels cooperatively; a partial output file may remain). |
+| **App launch** | Whole window | Empty file list → sidebar shows MC-1 ("Add PDFs to get started"). Preview pane shows MC-2 ("Select a file to preview it"). Merge disabled (tooltip: MC-10). No splash screen, no onboarding, no what's-new. |
+| **Files added, checking** | Sidebar + preview | New items appear at bottom with "Checking…" caption. If a checking item is selected, preview shows MC-7. Merge disabled (tooltip: MC-12) until all items resolve. |
+| **Files validated, none selected** | Sidebar + preview | Items show page counts. Preview shows MC-2. Merge enabled if ≥1 valid, 0 flagged. |
+| **File selected (valid)** | Preview pane | PDF pages rendered fit-to-width, vertical scroll. Preview toolbar buttons enabled per position. |
+| **File selected (flagged)** | Preview pane | Exclusion notice (MC-8 or MC-9) centered in the preview pane. No preview content — the notice alone is sufficient. The file is still selectable and removable. |
+| **File removed** | Sidebar + preview | Item disappears from list. Selection clears. Preview returns to MC-2. If the list is now empty, sidebar shows MC-1. Merge-enabled recalculated. |
+| **File reordered** | Sidebar + preview | Item moves one position. Selection follows the moved item. **Preview content is unchanged** — no reload, no flicker. |
+| **Merge pressed** | Whole window | Any visible success/error banner is **immediately dismissed**. The native Save dialog opens (default filename "merged.pdf", `.pdf` filter). The app remains interactive while the dialog is open — no lock. |
+| **Save dialog cancelled** | Whole window | Silent no-op. No error, no output. UI returns to idle. Window-close guard not engaged. |
+| **Merge executing (< 2 s)** | Action bar + content | UI locked: File list read-only, Add/Merge/toolbar disabled. Preview pane stays scrollable. **No progress affordance** — the merge finishes before the user would notice. |
+| **Merge executing (≥ 2 s)** | Progress indicator | Thin determinate `ProgressBar` appears above the Action bar. UI remains locked. Preview pane stays scrollable. Window-close guard (FR-12) is engaged. |
+| **Merge success** | Banner | InfoBar (Success): MC-13 + **Open folder** (MC-14). Auto-dismisses ~8 s. File list preserved — user can merge again or adjust and re-merge. UI unlocked. |
+| **Merge failure** | Banner | InfoBar (Error): MC-15, MC-16, MC-17, or MC-18. Manual dismiss. File list preserved for retry. UI unlocked. A partial/incomplete file may remain at the destination. |
+| **Open folder — folder gone** | Banner area | MC-19 ("Folder not found") shown inline instead of launching Explorer. |
+| **Close during merge** | Dialog overlay | ContentDialog: MC-20/21/22/23. Default is "Keep merging" (safe). "Close anyway" cancels merge cooperatively; a partial file may remain. |
+| **Validation timeout** | List item | A file that has not resolved after 5 seconds is treated as a parse failure → *error-corrupt* ("Could not read file"). This prevents a permanently stuck, non-interactive item in the list. |
 
 ## Interaction Primitives
 
-**Mouse-first, single-select.** The product is a short, linear task; there is no power-user surface.
+PDF Junior is a mouse-and-touch utility for a general audience. No custom keyboard shortcuts are defined for v1. The app relies on:
 
-- **Select** — click a row to select it and load its preview; selection and preview are always in sync. Clicking the selected row again is a no-op. Adding files never changes the current selection.
-- **Add** — `Add PDF(s)` → native multi-select picker (`.pdf` filter). Selected files append to the **bottom** in picker order; the list **auto-scrolls to reveal the newly added items**. Duplicates (same absolute path, case-insensitive) are silently skipped. Cancelling the picker is a silent no-op.
-- **Reorder** — `Move up` / `Move down` act on the selected file; **selection follows the moved file and the preview pane does not reload or flicker** (the same file stays rendered at its new position). No drag-to-reorder.
-- **Remove** — `Remove` (selected file only) deletes the row, **clears selection** (no neighbor auto-selected), and returns the preview to `Select a file to preview it`. A flagged file is removed exactly like any other.
-- **Merge** — pressing `Merge` first dismisses any visible banner, then opens the native Save dialog (filename pre-filled `merged.pdf`, `.pdf` type). The merge begins only after the dialog returns a confirmed destination; cancelling the dialog aborts silently and leaves the app idle and unlocked.
+- **WinUI's built-in keyboard support:** Tab navigation between controls, Space/Enter to activate buttons, arrow keys in the ListView, Escape to close dialogs.
+- **Mouse:** click to select list items, click buttons to act, scroll the preview pane, drag the sidebar divider.
+- **Touch:** tap equivalents of mouse actions on touch-enabled Windows devices.
+- **File picker keyboard:** the native `FileOpenPicker` and `FileSavePicker` have full keyboard support from Windows.
 
-**Banned:** drag-to-reorder (v1); hover-to-reveal status; any spinner/flash on sub-2s merges; silent inclusion of a not-yet-checked or flagged file; silent overwrite (the OS Save dialog owns overwrite confirmation).
+No vim-style shortcuts, no command palette, no drag-to-reorder. The interaction surface is deliberately small — buttons and clicks.
+
+**Banned:** drag-to-reorder (decided — Move up/down buttons instead), hover-only affordances (all actions are button-click), right-click context menus (no contextual actions beyond the toolbar), keyboard shortcuts that require learning.
 
 ## Accessibility Floor
 
-**Accessibility is explicitly out of scope for v1** (PRD §5, §6.2): no committed keyboard-only guarantees, no Narrator/screen-reader announcements, no WCAG conformance target, no custom focus management. The app retains **only** the baseline UI Automation that native WinUI controls provide for free (ListView arrow-key navigation, default Tab order, control names) — no accessibility work is scoped, and none should be implied by downstream stories. Visual contrast inherits WinUI theme defaults (`DESIGN.md`).
+Accessibility is **not a v1 requirement** (PRD §5). No committed keyboard-only guarantees, Narrator/screen-reader announcements, WCAG conformance, or explicit focus management.
+
+Native WinUI controls retain Windows' baseline automation support (UIA properties, basic Tab order), but no accessibility work is scoped:
+- No custom `AutomationProperties.Name` or `LiveSetting` annotations.
+- No focus-management after state transitions (e.g., after Remove or after merge completion).
+- No high-contrast theme testing.
+- No screen-reader testing.
+
+This is a deliberate scope decision, not an oversight. Accessibility may be added in a future version.
 
 ## Key Flows
 
-Named-protagonist journeys carried from PRD §2.3 (UJ-1…UJ-4), with the emotional climax beats restored.
+### Flow 1 — Marcus merges four handouts (first use)
 
-### Flow 1 — Marcus merges four handouts for the first time (UJ-1)
+Marcus, a middle-school teacher, has four PDF handouts he made this morning — chapter summaries for tomorrow's class. He wants one file to upload to the class portal before his next period starts in twelve minutes.
 
-*Marcus, a teacher, has four PDF handouts he needs as one file for the class portal.*
+1. He launches PDF Junior from the Start menu. The window opens in under three seconds: an empty sidebar that says "Add PDFs to get started" and a blank preview pane.
+2. He clicks **Add PDF(s)**. The native file picker opens to his Documents folder. He multi-selects the four handouts and clicks Open.
+3. Four items appear in the sidebar, each briefly showing "Checking…" and then resolving: "4 pages", "3 pages", "2 pages", "6 pages."
+4. He clicks the third file to check it — the preview pane fills with a fit-to-width render of the handout. He notices it should come second. He clicks **Move up** — the item slides to position two, stays selected, and the preview doesn't flicker.
+5. **Climax:** He clicks **Merge**. The Save dialog opens with "merged.pdf" pre-filled. He keeps the name, navigates to the Desktop, and clicks Save. The merge finishes in under a second — no progress bar, no spinner, just a green banner: "Merged successfully — merged.pdf." He clicks **Open folder**; Explorer opens to the Desktop. Four PDFs, one click, done. He uploads the file before the bell rings.
 
-1. He launches PDF Junior. The sidebar reads `Add PDFs to get started`; the preview reads `Select a file to preview it`.
-2. He clicks `Add PDF(s)`, multi-selects four PDFs in the native picker. Each appears at the bottom, briefly showing `Checking…`, then resolving to `12 pages`, `8 pages`, etc.
-3. He clicks one to preview it — it loads fit-to-width on the right. He notices a handout is out of order, selects it, and clicks `Move up`; the preview keeps showing that same file, now one row higher, without a flicker.
-4. **Climax:** He clicks `Merge`. The native Save dialog opens with `merged.pdf` pre-filled; he keeps the name, picks the Desktop, and clicks Save. The merge is quick enough that no progress bar ever appears — and a banner reads `Merged successfully — merged.pdf`. **Four handouts, one file, done — uploaded before the bell.**
-5. He clicks `Open folder`; File Explorer opens to the output. His file list is still there.
+### Flow 2 — Sophie removes two unreadable files (error recovery)
 
-*Failure path:* if the picker is cancelled at step 2, nothing is added — no error, no banner.
+Sophie, a paralegal, is assembling a document package for a filing. She has six PDFs from different sources — four from the firm's scanner, one from a client email, one from opposing counsel.
 
-### Flow 2 — Sophie removes two unreadable files before merging (UJ-2)
+1. She adds all six via the file picker. Four resolve to valid with page counts. One shows "Password protected" (the client's file was encrypted). One shows "Could not read file" (the opposing counsel attachment was a corrupted export).
+2. She clicks the password-protected file. The preview pane shows: "This file is password protected and will be excluded from the merge." The Merge button is disabled; its tooltip reads "Remove files with errors before merging."
+3. She selects the password-protected file and clicks **Remove**. Then selects the corrupt file and clicks **Remove**. Four valid files remain.
+4. **Climax:** Merge enables. She clicks it, saves as "filing-package.pdf" to her case folder, and the merge succeeds. Sophie exhales — the flagged files were surfaced clearly, never silently included, and removing them took two clicks. The package is clean.
 
-*Sophie, a paralegal, adds six PDFs; two are problematic.*
+### Flow 3 — Marcus overwrites a previous output (intentional overwrite)
 
-1. She adds six files. Four resolve to page counts; one resolves to `Password protected` and one to `Could not read file`, both captions in `{colors.error-text}`.
-2. `Merge` is disabled. Hovering it reads `Remove or replace files with errors`.
-3. She clicks the password-protected row; the preview shows `This file has an issue — it will be excluded from the merge.` She clicks `Remove`; selection clears. She does the same for the corrupt file.
-4. **Climax:** Five valid files remain, `Merge` re-enables, and the merge succeeds. **The flagged files were never silently swept into the output — Sophie exhales, knowing exactly what's in the file she's about to file with the court.**
+Marcus has already merged once today. He reordered two files and wants to produce an updated version at the same location with the same name.
 
-### Flow 3 — Marcus intentionally overwrites a previous output (UJ-3)
+1. He clicks **Merge**. The Save dialog opens (default "merged.pdf"). He navigates to the Desktop where the earlier `merged.pdf` sits.
+2. He keeps the same filename. The OS Save dialog warns: "merged.pdf already exists. Do you want to replace it?"
+3. **Climax:** He confirms. The merge runs; the old file is overwritten. The success banner confirms "Merged successfully — merged.pdf." The overwrite decision was the OS's dialog, not the app's — PDF Junior never second-guesses the user.
 
-*Marcus reorders his files and merges again to the same folder.*
+### Flow 4 — David recovers from a failed merge (disk error)
 
-1. He reorders, clicks `Merge`, and in the Save dialog navigates to the same Desktop folder where a `merged.pdf` already exists, keeping that name.
-2. **Climax:** The **native** Save dialog warns the file already exists and asks whether to replace it. He confirms Replace; the merge runs. **The overwrite happened because Windows asked and he said yes — the app never decided that for him.**
+David, a home user, has five valid scans of family medical records. He wants one file for his records folder on a USB drive.
 
-### Flow 4 — David recovers from a failed merge without losing his work (UJ-4)
-
-*David, a home user, adds five valid scans.*
-
-1. He clicks `Merge`, types a custom filename, and chooses a USB drive that turns out to be full. The merge fails.
-2. An error banner reads `Not enough space on E:\.` and stays until he dismisses it. His file list is untouched — a partial, unusable file may be left on the drive, which a successful retry to the same name overwrites.
-3. **Climax:** He frees space and clicks `Merge` again to the same folder; it succeeds. **No re-adding, no re-ordering, no lost work — the app held everything through the failure.**
-
-*Window-close variant:* if David tried to close the window mid-merge, `Stop the merge?` would appear — `Keep merging` keeps it running; `Close anyway` cancels the merge (a partial output file may remain).
+1. He adds the five scans. All valid. He clicks **Merge**, and in the Save dialog navigates to his USB drive (E:\) and names the file "medical-records.pdf."
+2. The merge starts. After two seconds a thin progress bar appears. Partway through, the write fails — the USB drive is full.
+3. An error banner appears: "Merge failed — Not enough space on E:\." The banner stays until he dismisses it (no auto-dismiss on errors). His file list is intact — all five files, in order, still there.
+4. He frees space on the USB drive, comes back to PDF Junior, and clicks **Merge** again. The stale error banner is immediately dismissed when he presses Merge. The Save dialog opens again; he picks the same folder and name.
+5. **Climax:** The merge completes. "Merged successfully — medical-records.pdf." The app held his work through the failure — no re-adding files, no re-ordering, no lost state. He clicks **Open folder** and the Explorer window appears on his USB drive.

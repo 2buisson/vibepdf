@@ -1,80 +1,88 @@
-# OSX
-#
-.DS_Store
+# .gitignore for the pdfjunior solution (.NET 8 / WinUI 3 / MSIX, Visual Studio)
+# Solution-level ignores. Applies recursively to all projects in the solution.
 
-# Xcode
-#
+## Build results
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
 build/
-*.pbxuser
-!default.pbxuser
-*.mode1v3
-!default.mode1v3
-*.mode2v3
-!default.mode2v3
-*.perspectivev3
-!default.perspectivev3
-xcuserdata
-*.xccheckout
-*.moved-aside
-DerivedData
-*.hmap
-*.ipa
-*.xcuserstate
-**/.xcode.env.local
+bld/
+[Oo]ut/
 
-# Android/IntelliJ
-#
-build/
-.idea/*
-!.idea/icon.svg
-.gradle
-local.properties
-*.iml
-*.hprof
-.cxx/
-*.keystore
-!debug.keystore
-.kotlin/
-
-# Code
-#
+## Visual Studio cache / user options
 .vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.VC.db
+*.VC.VC.opendb
+*.opendb
 
-# node.js
-#
-node_modules/
-npm-debug.log
-yarn-error.log
+## MSBuild / build engine
+*.binlog
+project.assets.json
+*.AssemblyAttributes.cs
+*.tlog
 
-# fastlane
-#
-# It is recommended to not store the screenshots in the git repo. Instead, use fastlane to re-generate the
-# screenshots whenever they are needed.
-# For more information about the recommended setup visit:
-# https://docs.fastlane.tools/best-practices/source-control/
+## MSIX / app packaging output & signing artifacts
+AppPackages/
+BundleArtifacts/
+GeneratedArtifacts/
+*.appx
+*.appxbundle
+*.appxupload
+*.msix
+*.msixbundle
+*.cer
+*.pfx
+_pkginfo.txt
 
-**/fastlane/report.xml
-**/fastlane/Preview.html
-**/fastlane/screenshots
-**/fastlane/test_output
+## NuGet
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
 
-# Bundle artifact
-*.jsbundle
+## Test results / coverage
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.trx
+*.coverage
+*.coveragexml
+coverage*.json
+coverage*.xml
 
-# Ruby / CocoaPods
-**/Pods/
-/vendor/bundle/
+## Profiling / debugging
+*.psess
+*.vsp
+*.vspx
+*.sap
+*.dmp
 
-# Temporary files created by Metro to check the health of the file watcher
-.metro-health-check*
+## ReSharper / Rider
+_ReSharper*/
+*.[Rr]e[Ss]harper
+.idea/
 
-# testing
-/coverage
-
-# Yarn
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/sdks
-!.yarn/versions
+## OS / editor cruft
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*~
+*.swp
