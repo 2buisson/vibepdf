@@ -1,0 +1,58 @@
+# generated: 2026-06-14
+# last_updated: 2026-06-14
+# project: pdf-junior
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: {project-root}/_bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: 2026-06-14
+last_updated: 2026-06-14
+project: pdf-junior
+project_key: NOKEY
+tracking_system: file-system
+story_location: {project-root}/_bmad-output/implementation-artifacts
+
+development_status:
+  # Epic 1: File Management & Preview
+  epic-1: backlog
+  1-1-project-setup-app-shell-layout: backlog
+  1-2-add-validate-pdf-files: backlog
+  1-3-remove-reorder-files: backlog
+  1-4-preview-selected-file: backlog
+  epic-1-retrospective: optional
+
+  # Epic 2: Merge, Output & Safety
+  epic-2: backlog
+  2-1-merge-gating-save-dialog: backlog
+  2-2-execute-merge-report-success: backlog
+  2-3-error-handling-close-guard: backlog
+  epic-2-retrospective: optional
