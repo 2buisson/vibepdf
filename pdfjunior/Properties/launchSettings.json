@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "pdfjunior (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "pdfjunior (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

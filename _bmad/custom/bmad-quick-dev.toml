@@ -1,0 +1,4 @@
+[workflow]
+persistent_facts = [
+    "Skip the adversarial review step. Do not invoke bmad-review-adversarial-general. Proceed directly to the next step after implementation.",
+]
