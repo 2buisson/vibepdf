@@ -7,13 +7,123 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    Title="pdfjunior">
+    Title="PDF Junior">
 
     <Window.SystemBackdrop>
         <MicaBackdrop />
     </Window.SystemBackdrop>
 
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
 
+        <!-- Row 0: Content area (sidebar + preview) -->
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="SidebarColumn" Width="280" MinWidth="200" MaxWidth="600" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Sidebar -->
+            <Grid Grid.Column="0">
+                <ListView
+                    x:Name="FileListView"
+                    ItemsSource="{x:Bind ViewModel.Files, Mode=OneWay}"
+                    SelectionMode="Single"
+                    SelectionChanged="FileListView_SelectionChanged"
+                    Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.HasFiles), Mode=OneWay}" />
+
+                <TextBlock
+                    Text="Add PDFs to get started"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Visibility="{x:Bind local:MainWindow.BoolToVisibilityInverse(ViewModel.HasFiles), Mode=OneWay}" />
+            </Grid>
+
+            <!-- GridSplitter -->
+            <Border
+                x:Name="GridSplitter"
+                Grid.Column="1"
+                Width="8"
+                Background="Transparent"
+                PointerEntered="GridSplitter_PointerEntered"
+                PointerExited="GridSplitter_PointerExited"
+                PointerPressed="GridSplitter_PointerPressed"
+                PointerMoved="GridSplitter_PointerMoved"
+                PointerReleased="GridSplitter_PointerReleased" />
+
+            <!-- Preview area -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Preview toolbar -->
+                <StackPanel
+                    Grid.Row="0"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Padding="8,4">
+                    <Button
+                        Content="&#xE74A;"
+                        FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                        ToolTipService.ToolTip="Move up"
+                        Command="{x:Bind ViewModel.MoveUpCommand, Mode=OneTime}"
+                        Margin="0,0,4,0" />
+                    <Button
+                        Content="&#xE74B;"
+                        FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                        ToolTipService.ToolTip="Move down"
+                        Command="{x:Bind ViewModel.MoveDownCommand, Mode=OneTime}"
+                        Margin="0,0,12,0" />
+                    <Button
+                        Content="&#xE74D;"
+                        FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                        ToolTipService.ToolTip="Remove"
+                        Command="{x:Bind ViewModel.RemoveCommand, Mode=OneTime}" />
+                </StackPanel>
+
+                <!-- Preview content -->
+                <ScrollViewer
+                    Grid.Row="1"
+                    HorizontalScrollBarVisibility="Disabled"
+                    VerticalScrollBarVisibility="Auto">
+                    <TextBlock
+                        Text="Select a file to preview it"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Margin="0,120,0,0" />
+                </ScrollViewer>
+            </Grid>
+        </Grid>
+
+        <!-- Row 1: Progress bar placeholder (collapsed) -->
+        <ProgressBar
+            Grid.Row="1"
+            Visibility="Collapsed" />
+
+        <!-- Row 2: Action bar -->
+        <Grid Grid.Row="2" Padding="16,8">
+            <StackPanel
+                Orientation="Horizontal"
+                HorizontalAlignment="Right"
+                Spacing="8">
+                <Button
+                    Content="Add PDF(s)"
+                    Command="{x:Bind ViewModel.AddFilesCommand, Mode=OneTime}" />
+                <Button
+                    Content="Merge"
+                    Style="{StaticResource AccentButtonStyle}"
+                    Command="{x:Bind ViewModel.MergeCommand, Mode=OneTime}"
+                    ToolTipService.ToolTip="Add at least one PDF to merge" />
+            </StackPanel>
+        </Grid>
     </Grid>
 </Window>
