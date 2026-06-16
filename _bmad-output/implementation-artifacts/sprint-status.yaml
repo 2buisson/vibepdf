@@ -46,7 +46,7 @@ development_status:
   epic-1: in-progress
   1-1-project-setup-app-shell-layout: done
   1-2-add-validate-pdf-files: done
-  1-3-remove-reorder-files: backlog
+  1-3-remove-reorder-files: review
   1-4-preview-selected-file: backlog
   epic-1-retrospective: optional
 

@@ -190,11 +190,11 @@ public class MainViewModelTests
 
         Assert.Equal(ValidationStatus.Checking, vm.Files[0].Status);
 
-        await Task.Delay(TimeSpan.FromSeconds(6));
+        await Task.Delay(TimeSpan.FromSeconds(6), TestContext.Current.CancellationToken);
 
         Assert.Equal(ValidationStatus.ErrorTimeout, vm.Files[0].Status);
 
-        hangForever.SetCanceled();
+        hangForever.SetCanceled(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -283,6 +283,213 @@ public class MainViewModelTests
         var vm = CreateViewModel();
         vm.Files.Add(new PdfFileItem(@"C:\test\a.pdf"));
         Assert.True(vm.HasFiles);
+    }
+
+    // --- Story 1.3: Remove & Reorder ---
+
+    [Fact]
+    public void Remove_SelectedFile_RemovedAndSelectionCleared()
+    {
+        var vm = CreateViewModel();
+        var a = new PdfFileItem(@"C:\test\a.pdf");
+        var b = new PdfFileItem(@"C:\test\b.pdf");
+        vm.Files.Add(a);
+        vm.Files.Add(b);
+        vm.SelectedFile = a;
+
+        vm.RemoveCommand.Execute(null);
+
+        Assert.DoesNotContain(a, vm.Files);
+        Assert.Single(vm.Files);
+        Assert.Null(vm.SelectedFile);
+    }
+
+    [Fact]
+    public void Remove_LastFile_HasFilesBecomesFalse()
+    {
+        var vm = CreateViewModel();
+        var a = new PdfFileItem(@"C:\test\a.pdf");
+        vm.Files.Add(a);
+        vm.SelectedFile = a;
+
+        vm.RemoveCommand.Execute(null);
+
+        Assert.Empty(vm.Files);
+        Assert.False(vm.HasFiles);
+    }
+
+    [Theory]
+    [InlineData(ValidationStatus.ErrorPassword)]
+    [InlineData(ValidationStatus.ErrorCorrupt)]
+    [InlineData(ValidationStatus.ErrorTimeout)]
+    public void Remove_FlaggedFile_RemovedLikeAnyOther(ValidationStatus status)
+    {
+        var vm = CreateViewModel();
+        var valid = new PdfFileItem(@"C:\test\good.pdf") { Status = ValidationStatus.Valid };
+        var flagged = new PdfFileItem(@"C:\test\bad.pdf") { Status = status };
+        vm.Files.Add(valid);
+        vm.Files.Add(flagged);
+        vm.SelectedFile = flagged;
+
+        vm.RemoveCommand.Execute(null);
+
+        Assert.DoesNotContain(flagged, vm.Files);
+        Assert.Single(vm.Files);
+        Assert.Null(vm.SelectedFile);
+    }
+
+    [Fact]
+    public void Remove_OnlyFlaggedFile_CanMergeBecomesTrue()
+    {
+        var vm = CreateViewModel();
+        var valid = new PdfFileItem(@"C:\test\good.pdf") { Status = ValidationStatus.Valid };
+        var flagged = new PdfFileItem(@"C:\test\bad.pdf") { Status = ValidationStatus.ErrorCorrupt };
+        vm.Files.Add(valid);
+        vm.Files.Add(flagged);
+
+        Assert.False(vm.CanMerge);
+
+        vm.SelectedFile = flagged;
+        vm.RemoveCommand.Execute(null);
+
+        Assert.True(vm.CanMerge);
+    }
+
+    [Fact]
+    public void MoveUp_MiddleItem_MovesUpAndKeepsSameSelection()
+    {
+        var vm = CreateViewModel();
+        var a = new PdfFileItem(@"C:\test\a.pdf");
+        var b = new PdfFileItem(@"C:\test\b.pdf");
+        var c = new PdfFileItem(@"C:\test\c.pdf");
+        vm.Files.Add(a);
+        vm.Files.Add(b);
+        vm.Files.Add(c);
+        vm.SelectedFile = b;
+
+        vm.MoveUpCommand.Execute(null);
+
+        Assert.Equal(0, vm.Files.IndexOf(b));
+        Assert.Same(b, vm.SelectedFile);
+    }
+
+    [Fact]
+    public void MoveDown_MiddleItem_MovesDownAndKeepsSameSelection()
+    {
+        var vm = CreateViewModel();
+        var a = new PdfFileItem(@"C:\test\a.pdf");
+        var b = new PdfFileItem(@"C:\test\b.pdf");
+        var c = new PdfFileItem(@"C:\test\c.pdf");
+        vm.Files.Add(a);
+        vm.Files.Add(b);
+        vm.Files.Add(c);
+        vm.SelectedFile = b;
+
+        vm.MoveDownCommand.Execute(null);
+
+        Assert.Equal(2, vm.Files.IndexOf(b));
+        Assert.Same(b, vm.SelectedFile);
+    }
+
+    [Fact]
+    public void CanMoveUp_FirstItemSelected_FalseAndMoveDownTrue()
+    {
+        var vm = CreateViewModel();
+        var a = new PdfFileItem(@"C:\test\a.pdf");
+        var b = new PdfFileItem(@"C:\test\b.pdf");
+        vm.Files.Add(a);
+        vm.Files.Add(b);
+        vm.SelectedFile = a;
+
+        Assert.False(vm.MoveUpCommand.CanExecute(null));
+        Assert.True(vm.MoveDownCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void CanMoveDown_LastItemSelected_FalseAndMoveUpTrue()
+    {
+        var vm = CreateViewModel();
+        var a = new PdfFileItem(@"C:\test\a.pdf");
+        var b = new PdfFileItem(@"C:\test\b.pdf");
+        vm.Files.Add(a);
+        vm.Files.Add(b);
+        vm.SelectedFile = b;
+
+        Assert.False(vm.MoveDownCommand.CanExecute(null));
+        Assert.True(vm.MoveUpCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void Commands_NoSelection_MoveAndRemoveAllDisabled()
+    {
+        var vm = CreateViewModel();
+        vm.Files.Add(new PdfFileItem(@"C:\test\a.pdf"));
+
+        Assert.False(vm.MoveUpCommand.CanExecute(null));
+        Assert.False(vm.MoveDownCommand.CanExecute(null));
+        Assert.False(vm.RemoveCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void MoveUp_ToFirstPosition_DisablesMoveUpEnablesMoveDown()
+    {
+        var vm = CreateViewModel();
+        var a = new PdfFileItem(@"C:\test\a.pdf");
+        var b = new PdfFileItem(@"C:\test\b.pdf");
+        vm.Files.Add(a);
+        vm.Files.Add(b);
+        vm.SelectedFile = b;
+
+        Assert.True(vm.MoveUpCommand.CanExecute(null));
+
+        vm.MoveUpCommand.Execute(null);
+
+        Assert.False(vm.MoveUpCommand.CanExecute(null));
+        Assert.True(vm.MoveDownCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void RemovingItemBelowSelection_DisablesMoveDownForNewLast()
+    {
+        var vm = CreateViewModel();
+        var a = new PdfFileItem(@"C:\test\a.pdf");
+        var b = new PdfFileItem(@"C:\test\b.pdf");
+        vm.Files.Add(a);
+        vm.Files.Add(b);
+        vm.SelectedFile = a;
+
+        Assert.True(vm.MoveDownCommand.CanExecute(null));
+
+        vm.Files.Remove(b);
+
+        Assert.False(vm.MoveDownCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task Remove_DuringValidation_LateCompletionDoesNotMutateOrFlipMerge()
+    {
+        var hang = new TaskCompletionSource<(ValidationStatus, int?)>();
+        _pickerService.PickFilesAsync().Returns(new List<string> { @"C:\test\hang.pdf" });
+        _validationService.ValidateAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(hang.Task);
+
+        var vm = CreateViewModel();
+        await vm.AddFilesCommand.ExecuteAsync(null);
+
+        var item = vm.Files[0];
+        Assert.Equal(ValidationStatus.Checking, item.Status);
+
+        vm.SelectedFile = item;
+        vm.RemoveCommand.Execute(null);
+
+        Assert.Empty(vm.Files);
+
+        // Late-completing validation arrives after the item was removed.
+        hang.SetResult((ValidationStatus.Valid, 5));
+        await WaitForValidation();
+
+        Assert.Empty(vm.Files);
+        Assert.False(vm.CanMerge);
     }
 
     private static async Task WaitForValidation()

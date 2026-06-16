@@ -17,6 +17,7 @@ public partial class MainViewModel : ObservableObject
     private readonly DispatcherQueue? _dispatcherQueue;
     private readonly SemaphoreSlim _validationSemaphore = new(3);
     private readonly List<PdfFileItem> _subscribedItems = [];
+    private readonly Dictionary<PdfFileItem, CancellationTokenSource> _validationCts = [];
 
     public ObservableCollection<PdfFileItem> Files { get; } = [];
 
@@ -97,6 +98,13 @@ public partial class MainViewModel : ObservableObject
         }
 
         NotifyMergeStateChanged();
+
+        // Adding/removing files shifts the selected item's position and the list bounds
+        // (e.g. selected item becomes last → Move down must disable). The SelectedFile
+        // reference is unchanged, so its NotifyCanExecuteChangedFor attributes won't fire.
+        MoveUpCommand.NotifyCanExecuteChanged();
+        MoveDownCommand.NotifyCanExecuteChanged();
+        RemoveCommand.NotifyCanExecuteChanged();
     }
 
     private void OnFilePropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -140,12 +148,13 @@ public partial class MainViewModel : ObservableObject
 
     private async Task ValidateFileAsync(PdfFileItem item)
     {
+        var cts = new CancellationTokenSource();
+        _validationCts[item] = cts; // registered on the UI thread (sync prefix of the call)
         try
         {
             await _validationSemaphore.WaitAsync();
             try
             {
-                using var cts = new CancellationTokenSource();
                 var validationTask = Task.Run(
                     () => _validationService.ValidateAsync(item.Path, cts.Token));
                 var timeoutTask = Task.Delay(TimeSpan.FromSeconds(5), CancellationToken.None);
@@ -154,24 +163,26 @@ public partial class MainViewModel : ObservableObject
                 if (completed == timeoutTask)
                 {
                     await cts.CancelAsync();
-                    RunOnUI(() => item.Status = ValidationStatus.ErrorTimeout);
+                    RunOnUI(() => { if (Files.Contains(item)) item.Status = ValidationStatus.ErrorTimeout; });
                     return;
                 }
 
                 var (status, pageCount) = await validationTask;
                 RunOnUI(() =>
                 {
+                    if (!Files.Contains(item)) return; // removed mid-flight → drop the write
                     item.Status = status;
                     item.PageCount = pageCount;
                 });
             }
             catch (OperationCanceledException)
             {
-                RunOnUI(() => item.Status = ValidationStatus.ErrorTimeout);
+                // Timeout OR removal-triggered cancel; only mark timeout if still present.
+                RunOnUI(() => { if (Files.Contains(item)) item.Status = ValidationStatus.ErrorTimeout; });
             }
             catch
             {
-                RunOnUI(() => item.Status = ValidationStatus.ErrorCorrupt);
+                RunOnUI(() => { if (Files.Contains(item)) item.Status = ValidationStatus.ErrorCorrupt; });
             }
             finally
             {
@@ -182,6 +193,11 @@ public partial class MainViewModel : ObservableObject
         {
             // Semaphore disposed during shutdown — nothing to do
         }
+        finally
+        {
+            _validationCts.Remove(item);
+            cts.Dispose();
+        }
     }
 
     [RelayCommand(CanExecute = nameof(CanMerge))]
@@ -190,18 +206,40 @@ public partial class MainViewModel : ObservableObject
         return Task.CompletedTask;
     }
 
-    private bool CanMoveUp() => SelectedFile is not null;
+    private bool CanMoveUp() => SelectedFile is not null && Files.IndexOf(SelectedFile) > 0;
 
     [RelayCommand(CanExecute = nameof(CanMoveUp))]
     private void MoveUp()
     {
+        var item = SelectedFile;
+        if (item is null) return;
+        var index = Files.IndexOf(item);
+        if (index <= 0) return;
+
+        // Move preserves the item instance (single Move notification), so the ListView
+        // keeps its selection and SelectedFile stays the same reference — no preview reload.
+        Files.Move(index, index - 1);
+
+        // The index changed but SelectedFile's reference did not, so the
+        // [NotifyCanExecuteChangedFor] attributes won't fire — re-evaluate explicitly.
+        MoveUpCommand.NotifyCanExecuteChanged();
+        MoveDownCommand.NotifyCanExecuteChanged();
     }
 
-    private bool CanMoveDown() => SelectedFile is not null;
+    private bool CanMoveDown() => SelectedFile is not null && Files.IndexOf(SelectedFile) < Files.Count - 1;
 
     [RelayCommand(CanExecute = nameof(CanMoveDown))]
     private void MoveDown()
     {
+        var item = SelectedFile;
+        if (item is null) return;
+        var index = Files.IndexOf(item);
+        if (index < 0 || index >= Files.Count - 1) return;
+
+        Files.Move(index, index + 1);
+
+        MoveUpCommand.NotifyCanExecuteChanged();
+        MoveDownCommand.NotifyCanExecuteChanged();
     }
 
     private bool CanRemove() => SelectedFile is not null;
@@ -209,5 +247,15 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanRemove))]
     private void Remove()
     {
+        var item = SelectedFile;
+        if (item is null) return;
+
+        // Cancel any in-flight validation so the semaphore slot frees and no status is
+        // written back to the removed item (a removed item's late completion is dropped).
+        if (_validationCts.TryGetValue(item, out var cts))
+            cts.Cancel();
+
+        Files.Remove(item);  // ListView auto-deselects the removed item
+        SelectedFile = null; // explicit clear — makes the VM correct without a ListView
     }
 }
