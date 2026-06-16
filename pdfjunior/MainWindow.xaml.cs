@@ -3,6 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
+using pdfjunior.Models;
+using pdfjunior.Strings;
 using pdfjunior.ViewModels;
 using Windows.Graphics;
 using WinRT.Interop;
@@ -100,6 +103,30 @@ public sealed partial class MainWindow : Window
 
     public static Visibility BoolToVisibilityInverse(bool value) =>
         value ? Visibility.Collapsed : Visibility.Visible;
+
+    public static string FormatStatus(ValidationStatus status, int? pageCount) => status switch
+    {
+        ValidationStatus.Checking => UiStrings.StatusChecking,
+        ValidationStatus.Valid => string.Format(
+            pageCount == 1 ? UiStrings.StatusValidSingular : UiStrings.StatusValidPlural,
+            pageCount),
+        ValidationStatus.ErrorPassword => UiStrings.StatusErrorPassword,
+        ValidationStatus.ErrorCorrupt => UiStrings.StatusErrorCorrupt,
+        ValidationStatus.ErrorTimeout => UiStrings.StatusErrorTimeout,
+        _ => string.Empty,
+    };
+
+    public static Brush StatusForeground(ValidationStatus status)
+    {
+        var key = status is ValidationStatus.ErrorPassword or ValidationStatus.ErrorCorrupt or ValidationStatus.ErrorTimeout
+            ? "SystemFillColorCriticalBrush"
+            : "TextFillColorSecondaryBrush";
+
+        if (Application.Current.Resources.TryGetValue(key, out var resource) && resource is Brush brush)
+            return brush;
+
+        return new SolidColorBrush(Microsoft.UI.Colors.Gray);
+    }
 
     private void SetMinWindowSize()
     {

@@ -21,6 +21,9 @@ public static class UiStrings
     // MC-6: List item — error-corrupt
     public const string StatusErrorCorrupt = "Could not read file";
 
+    // MC-24: List item — error-timeout
+    public const string StatusErrorTimeout = "Could not read file (timeout)";
+
     // MC-7: Preview — checking placeholder
     public const string PreviewChecking = "Checking…";
 

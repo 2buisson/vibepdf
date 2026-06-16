@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
+using pdfjunior.Services;
 using pdfjunior.ViewModels;
+using WinRT.Interop;
 
 namespace pdfjunior;
 
@@ -21,6 +23,8 @@ public partial class App : Application
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
         _window = new MainWindow();
+        var pickerService = Services.GetRequiredService<FilePickerService>();
+        pickerService.Hwnd = WindowNative.GetWindowHandle(_window);
         _window.Activate();
     }
 
@@ -28,6 +32,9 @@ public partial class App : Application
     {
         var services = new ServiceCollection();
 
+        services.AddSingleton<FilePickerService>();
+        services.AddSingleton<IFilePickerService>(sp => sp.GetRequiredService<FilePickerService>());
+        services.AddSingleton<IPdfValidationService, PdfValidationService>();
         services.AddSingleton<MainViewModel>();
 
         return services.BuildServiceProvider();
