@@ -36,6 +36,9 @@
                     ItemsSource="{x:Bind ViewModel.Files, Mode=OneWay}"
                     SelectionMode="Single"
                     SelectionChanged="FileListView_SelectionChanged"
+                    CanDragItems="True"
+                    AllowDrop="True"
+                    CanReorderItems="True"
                     Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.HasFiles), Mode=OneWay}">
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="models:PdfFileItem">
@@ -80,24 +83,12 @@
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
-                <!-- Preview toolbar -->
+                <!-- Preview toolbar (reorder is drag-and-drop in the file list) -->
                 <StackPanel
                     Grid.Row="0"
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     Padding="8,4">
-                    <Button
-                        Content="&#xE74A;"
-                        FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                        ToolTipService.ToolTip="Move up"
-                        Command="{x:Bind ViewModel.MoveUpCommand, Mode=OneTime}"
-                        Margin="0,0,4,0" />
-                    <Button
-                        Content="&#xE74B;"
-                        FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                        ToolTipService.ToolTip="Move down"
-                        Command="{x:Bind ViewModel.MoveDownCommand, Mode=OneTime}"
-                        Margin="0,0,12,0" />
                     <Button
                         Content="&#xE74D;"
                         FontFamily="{ThemeResource SymbolThemeFontFamily}"

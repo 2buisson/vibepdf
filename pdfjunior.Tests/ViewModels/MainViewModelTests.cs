@@ -285,7 +285,7 @@ public class MainViewModelTests
         Assert.True(vm.HasFiles);
     }
 
-    // --- Story 1.3: Remove & Reorder ---
+    // --- Remove (reorder is drag-and-drop in the ListView; no view-model command) ---
 
     [Fact]
     public void Remove_SelectedFile_RemovedAndSelectionCleared()
@@ -356,113 +356,33 @@ public class MainViewModelTests
     }
 
     [Fact]
-    public void MoveUp_MiddleItem_MovesUpAndKeepsSameSelection()
-    {
-        var vm = CreateViewModel();
-        var a = new PdfFileItem(@"C:\test\a.pdf");
-        var b = new PdfFileItem(@"C:\test\b.pdf");
-        var c = new PdfFileItem(@"C:\test\c.pdf");
-        vm.Files.Add(a);
-        vm.Files.Add(b);
-        vm.Files.Add(c);
-        vm.SelectedFile = b;
-
-        vm.MoveUpCommand.Execute(null);
-
-        Assert.Equal(0, vm.Files.IndexOf(b));
-        Assert.Same(b, vm.SelectedFile);
-    }
-
-    [Fact]
-    public void MoveDown_MiddleItem_MovesDownAndKeepsSameSelection()
-    {
-        var vm = CreateViewModel();
-        var a = new PdfFileItem(@"C:\test\a.pdf");
-        var b = new PdfFileItem(@"C:\test\b.pdf");
-        var c = new PdfFileItem(@"C:\test\c.pdf");
-        vm.Files.Add(a);
-        vm.Files.Add(b);
-        vm.Files.Add(c);
-        vm.SelectedFile = b;
-
-        vm.MoveDownCommand.Execute(null);
-
-        Assert.Equal(2, vm.Files.IndexOf(b));
-        Assert.Same(b, vm.SelectedFile);
-    }
-
-    [Fact]
-    public void CanMoveUp_FirstItemSelected_FalseAndMoveDownTrue()
-    {
-        var vm = CreateViewModel();
-        var a = new PdfFileItem(@"C:\test\a.pdf");
-        var b = new PdfFileItem(@"C:\test\b.pdf");
-        vm.Files.Add(a);
-        vm.Files.Add(b);
-        vm.SelectedFile = a;
-
-        Assert.False(vm.MoveUpCommand.CanExecute(null));
-        Assert.True(vm.MoveDownCommand.CanExecute(null));
-    }
-
-    [Fact]
-    public void CanMoveDown_LastItemSelected_FalseAndMoveUpTrue()
-    {
-        var vm = CreateViewModel();
-        var a = new PdfFileItem(@"C:\test\a.pdf");
-        var b = new PdfFileItem(@"C:\test\b.pdf");
-        vm.Files.Add(a);
-        vm.Files.Add(b);
-        vm.SelectedFile = b;
-
-        Assert.False(vm.MoveDownCommand.CanExecute(null));
-        Assert.True(vm.MoveUpCommand.CanExecute(null));
-    }
-
-    [Fact]
-    public void Commands_NoSelection_MoveAndRemoveAllDisabled()
+    public void Remove_NoSelection_Disabled()
     {
         var vm = CreateViewModel();
         vm.Files.Add(new PdfFileItem(@"C:\test\a.pdf"));
 
-        Assert.False(vm.MoveUpCommand.CanExecute(null));
-        Assert.False(vm.MoveDownCommand.CanExecute(null));
         Assert.False(vm.RemoveCommand.CanExecute(null));
     }
 
     [Fact]
-    public void MoveUp_ToFirstPosition_DisablesMoveUpEnablesMoveDown()
+    public void Reorder_PreservesSelectionAndOrder()
     {
+        // Drag-reorder is performed by the ListView mutating the bound Files
+        // collection directly; this mirrors that mutation to document that the
+        // selected reference and resulting merge order survive a reorder.
         var vm = CreateViewModel();
         var a = new PdfFileItem(@"C:\test\a.pdf");
         var b = new PdfFileItem(@"C:\test\b.pdf");
+        var c = new PdfFileItem(@"C:\test\c.pdf");
         vm.Files.Add(a);
         vm.Files.Add(b);
+        vm.Files.Add(c);
         vm.SelectedFile = b;
 
-        Assert.True(vm.MoveUpCommand.CanExecute(null));
+        vm.Files.Move(1, 0); // user drags b above a
 
-        vm.MoveUpCommand.Execute(null);
-
-        Assert.False(vm.MoveUpCommand.CanExecute(null));
-        Assert.True(vm.MoveDownCommand.CanExecute(null));
-    }
-
-    [Fact]
-    public void RemovingItemBelowSelection_DisablesMoveDownForNewLast()
-    {
-        var vm = CreateViewModel();
-        var a = new PdfFileItem(@"C:\test\a.pdf");
-        var b = new PdfFileItem(@"C:\test\b.pdf");
-        vm.Files.Add(a);
-        vm.Files.Add(b);
-        vm.SelectedFile = a;
-
-        Assert.True(vm.MoveDownCommand.CanExecute(null));
-
-        vm.Files.Remove(b);
-
-        Assert.False(vm.MoveDownCommand.CanExecute(null));
+        Assert.Equal(new[] { b, a, c }, vm.Files);
+        Assert.Same(b, vm.SelectedFile);
     }
 
     [Fact]

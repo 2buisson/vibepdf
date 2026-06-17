@@ -22,8 +22,6 @@ public partial class MainViewModel : ObservableObject
     public ObservableCollection<PdfFileItem> Files { get; } = [];
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(MoveUpCommand))]
-    [NotifyCanExecuteChangedFor(nameof(MoveDownCommand))]
     [NotifyCanExecuteChangedFor(nameof(RemoveCommand))]
     public partial PdfFileItem? SelectedFile { get; set; }
 
@@ -99,11 +97,10 @@ public partial class MainViewModel : ObservableObject
 
         NotifyMergeStateChanged();
 
-        // Adding/removing files shifts the selected item's position and the list bounds
-        // (e.g. selected item becomes last → Move down must disable). The SelectedFile
-        // reference is unchanged, so its NotifyCanExecuteChangedFor attributes won't fire.
-        MoveUpCommand.NotifyCanExecuteChanged();
-        MoveDownCommand.NotifyCanExecuteChanged();
+        // Removing the selected file normally clears selection via the ListView's
+        // SelectionChanged (which re-evaluates RemoveCommand through SelectedFile's
+        // NotifyCanExecuteChangedFor). Re-check here too so the command state stays
+        // correct for collection changes that don't flow through a SelectedFile change.
         RemoveCommand.NotifyCanExecuteChanged();
     }
 
@@ -206,41 +203,9 @@ public partial class MainViewModel : ObservableObject
         return Task.CompletedTask;
     }
 
-    private bool CanMoveUp() => SelectedFile is not null && Files.IndexOf(SelectedFile) > 0;
-
-    [RelayCommand(CanExecute = nameof(CanMoveUp))]
-    private void MoveUp()
-    {
-        var item = SelectedFile;
-        if (item is null) return;
-        var index = Files.IndexOf(item);
-        if (index <= 0) return;
-
-        // Move preserves the item instance (single Move notification), so the ListView
-        // keeps its selection and SelectedFile stays the same reference — no preview reload.
-        Files.Move(index, index - 1);
-
-        // The index changed but SelectedFile's reference did not, so the
-        // [NotifyCanExecuteChangedFor] attributes won't fire — re-evaluate explicitly.
-        MoveUpCommand.NotifyCanExecuteChanged();
-        MoveDownCommand.NotifyCanExecuteChanged();
-    }
-
-    private bool CanMoveDown() => SelectedFile is not null && Files.IndexOf(SelectedFile) < Files.Count - 1;
-
-    [RelayCommand(CanExecute = nameof(CanMoveDown))]
-    private void MoveDown()
-    {
-        var item = SelectedFile;
-        if (item is null) return;
-        var index = Files.IndexOf(item);
-        if (index < 0 || index >= Files.Count - 1) return;
-
-        Files.Move(index, index + 1);
-
-        MoveUpCommand.NotifyCanExecuteChanged();
-        MoveDownCommand.NotifyCanExecuteChanged();
-    }
+    // Reorder is handled by the file ListView's built-in drag-and-drop
+    // (CanReorderItems/AllowDrop/CanDragItems), which mutates the bound Files
+    // collection directly — no view-model command is involved.
 
     private bool CanRemove() => SelectedFile is not null;
 
