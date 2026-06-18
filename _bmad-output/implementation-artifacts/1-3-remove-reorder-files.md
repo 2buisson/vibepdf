@@ -4,7 +4,7 @@ baseline_commit: dd65d1e
 
 # Story 1.3: Remove & Reorder Files
 
-Status: review
+Status: done
 
 > **Updated 2026-06-18:** Reorder changed from Move up / Move down buttons to native `ListView` drag-and-drop (commit 859232b). ACs 4–6 below and the Change Log entry reflect this. The Tasks/Subtasks and Dev Notes further down document the original 2026-06-16 button implementation and are retained as history — see the Change Log for what superseded them.
 

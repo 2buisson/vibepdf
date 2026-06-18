@@ -4,7 +4,9 @@ baseline_commit: 3ebe699
 
 # Story 1.4: Preview Selected File
 
-Status: review
+Status: done
+
+> **Updated 2026-06-18:** Rendering pivoted from per-page `BitmapImage` bitmaps (`PdfPreviewService` + `Windows.Data.Pdf`) to embedding the in-box Edge `WebView2` PDF viewer, navigated directly to the file's `Uri` (commit `0bcd2ce`). `IPdfPreviewService`/`PdfPreviewService` and the bitmap render pipeline (`PreviewPages`, `PreviewViewportWidth`, `_previewCts`, render cancellation/staleness guards) were deleted; `MainViewModel` now just sets `PreviewUri = new Uri(item.Path)` and `Preview = PreviewState.Ready` synchronously — no async render, no cancellation needed (WebView2 owns paging/navigation). `MainWindow.xaml`'s `ScrollViewer`+`ItemsControl` was replaced by a single `WebView2` control bound `Source="{x:Bind ViewModel.PreviewUri}"`; `MainWindow.xaml.cs` hides every `CoreWebView2PdfToolbarItems` flag (save/print/zoom/rotate/search/etc.) so no editing/zoom/page-nav affordances are visible, matching AC #1's "no zoom/page controls" intent, but page layout, fit, and scroll behavior are now whatever Edge's PDF viewer does by default (not a custom fit-to-width/vertical-only render) — see the Change Log and Dev Agent Record for what superseded the original Tasks/Subtasks/Dev Notes below, which are retained as history.
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -287,16 +289,25 @@ Claude Sonnet 4.6 (claude-sonnet-4-6)
 - Build is clean (0 warnings/0 errors) for `-p:Platform=x64 -r win-x64`; the direct-exe test run reports **44 total, 0 errors, 0 failed, 0 skipped**.
 - **Pending:** the Task 7 visual F5 pass (rendered preview, fit-to-width, scroll, no-flicker-on-reorder, exact MC-8/MC-9 sentences) requires Antoine's manual Visual Studio F5 verification — MSIX cannot launch from CLI, consistent with stories 1.1–1.3. Left unchecked in Tasks/Subtasks rather than claimed as done.
 
+**2026-06-18 webview pivot (commit `0bcd2ce`, applied by Antoine outside this dev-story session):**
+- Deleted `PdfPreviewService`/`IPdfPreviewService` and the bitmap render pipeline entirely (`PreviewPages`, `PreviewViewportWidth`, `_previewCts`, the `OnPreviewViewportWidthChanged` resize hook, and the DI registration in `App.xaml.cs`). `MainViewModel`'s `UpdatePreviewAsync` became a synchronous `UpdatePreview`: each branch sets `PreviewUri` (null for None/Checking/ExcludedPassword/ExcludedCorrupt, `new Uri(item.Path)` for Valid) and `Preview` directly — no cancellation token needed since there is no async render to race.
+- `MainWindow.xaml` now hosts a single `WebView2` (`x:Name="PreviewWebView"`) bound `Source="{x:Bind ViewModel.PreviewUri, Mode=OneWay}"`, replacing the `ScrollViewer`/`ItemsControl` page-list. `MainWindow.xaml.cs` adds `InitializePreviewWebViewAsync()` (called from the constructor) which awaits `EnsureCoreWebView2Async()` and sets `CoreWebView2.Settings.HiddenPdfToolbarItems` to every `CoreWebView2PdfToolbarItems` flag (Save, Print, SaveAs, Zoom In/Out, Rotate, FitPage, PageLayout, Bookmarks, PageSelector, Search, FullScreen, MoreSettings) — this is the new mechanism for "no editing/zoom/page controls" (AC #1), replacing the old toolbar-less custom bitmap renderer. The `PreviewScrollViewer_SizeChanged`/`PreviewViewportWidth` width-feed wiring (Task 4) was removed as moot.
+- `MainViewModelTests.cs` updated accordingly: `CreateViewModel()` no longer takes/mocks `IPdfPreviewService`; all `RenderPagesAsync` assertions were replaced with `PreviewUri` assertions (e.g. `Preview_SelectValid_RendersAndShowsPages` → `Preview_SelectValid_NavigatesToFile`, asserting `vm.PreviewUri == new Uri(item.Path)`). The `Preview_StaleRender_SupersededByNewerSelection` test was deleted — there is no longer an async render to race, so the scenario no longer applies. Suite is now **43 tests** (down from 44), all green; build clean (0 warnings/0 errors) for `-p:Platform=x64 -r win-x64`.
+- Marked as a **spike** in code (see comment above `InitializePreviewWebViewAsync`): page layout/scroll/fit-to-width behavior is now whatever Edge's built-in PDF viewer does by default, not the custom render this story originally specified — AC #1's "fit-to-width, vertical scroll only" and AC #2's "continuous vertical scroll" are no longer guaranteed by app code and need re-verification against the actual WebView2/Edge PDF viewer behavior during the Task 7 F5 pass.
+- File List and Project Structure Notes above are superseded — see the corrected list below.
+
 ### File List
 
-- `pdfjunior/Services/PdfPreviewService.cs` (new)
-- `pdfjunior/Models/PreviewState.cs` (new)
-- `pdfjunior/ViewModels/MainViewModel.cs` (modified)
-- `pdfjunior/MainWindow.xaml` (modified)
-- `pdfjunior/MainWindow.xaml.cs` (modified)
-- `pdfjunior/App.xaml.cs` (modified)
-- `pdfjunior.Tests/ViewModels/MainViewModelTests.cs` (modified)
+- ~~`pdfjunior/Services/PdfPreviewService.cs`~~ (deleted in the webview pivot)
+- ~~`pdfjunior/Services/IPdfPreviewService.cs`~~ (deleted in the webview pivot)
+- `pdfjunior/Models/PreviewState.cs` (new — unchanged by the pivot)
+- `pdfjunior/ViewModels/MainViewModel.cs` (modified, then modified again by the pivot — sync `UpdatePreview` + `PreviewUri`)
+- `pdfjunior/MainWindow.xaml` (modified, then modified again by the pivot — `WebView2` control)
+- `pdfjunior/MainWindow.xaml.cs` (modified, then modified again by the pivot — `InitializePreviewWebViewAsync`)
+- `pdfjunior/App.xaml.cs` (modified, then modified again by the pivot — preview-service DI registration removed)
+- `pdfjunior.Tests/ViewModels/MainViewModelTests.cs` (modified, then modified again by the pivot — `PreviewUri` assertions)
 
 ## Change Log
 
 - 2026-06-18: Implemented `PdfPreviewService` (Windows.Data.Pdf, fit-to-width render) and the `MainViewModel` preview state machine (`PreviewState`, `PreviewPages`, `PreviewViewportWidth`, `UpdatePreviewAsync`) driven by selection + selected-file status changes only (never collection changes), preserving the AC #10 no-reload-on-reorder guarantee. Wired the preview pane in `MainWindow.xaml`/`MainWindow.xaml.cs` and registered the service in DI. Resolved the sidebar empty-state inline-literal deferred item. Added 10 unit tests covering AC #3–#11 — suite now 44 tests total, all green; 0 warnings/0 errors. Status → review. Manual VS F5 visual pass pending.
+- 2026-06-18 (commit `0bcd2ce`): Pivoted the preview pane from custom `Windows.Data.Pdf` bitmap rendering to an embedded `WebView2` navigated to the selected file's `Uri`, with every `CoreWebView2PdfToolbarItems` flag hidden. Removed `PdfPreviewService`/`IPdfPreviewService`, the render-cancellation pipeline, and `PreviewViewportWidth`; `MainViewModel.PreviewUri` replaces `PreviewPages`. Updated `MainViewModelTests` to assert on `PreviewUri` instead of render-service calls and removed the now-inapplicable stale-render test — suite is 43 tests, all green; 0 warnings/0 errors. AC #1/#2's exact fit-to-width/scroll behavior now depends on Edge's PDF viewer defaults rather than app code and is flagged for re-verification in the Task 7 F5 pass. Status remains "review".
