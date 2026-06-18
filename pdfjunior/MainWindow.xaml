@@ -5,6 +5,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:pdfjunior"
     xmlns:models="using:pdfjunior.Models"
+    xmlns:strings="using:pdfjunior.Strings"
+    xmlns:imaging="using:Microsoft.UI.Xaml.Media.Imaging"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
@@ -57,7 +59,7 @@
                 </ListView>
 
                 <TextBlock
-                    Text="Add PDFs to get started"
+                    Text="{x:Bind strings:UiStrings.EmptyFileListPlaceholder}"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
@@ -97,17 +99,29 @@
                 </StackPanel>
 
                 <!-- Preview content -->
-                <ScrollViewer
-                    Grid.Row="1"
-                    HorizontalScrollBarVisibility="Disabled"
-                    VerticalScrollBarVisibility="Auto">
+                <Grid Grid.Row="1">
+                    <ScrollViewer
+                        x:Name="PreviewScrollViewer"
+                        HorizontalScrollBarVisibility="Disabled"
+                        VerticalScrollBarVisibility="Auto"
+                        SizeChanged="PreviewScrollViewer_SizeChanged"
+                        Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.ShowPreviewPages), Mode=OneWay}">
+                        <ItemsControl ItemsSource="{x:Bind ViewModel.PreviewPages, Mode=OneWay}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="imaging:BitmapImage">
+                                    <Image Source="{x:Bind}" Stretch="Uniform" HorizontalAlignment="Stretch" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
                     <TextBlock
-                        Text="Select a file to preview it"
+                        Text="{x:Bind ViewModel.PreviewPlaceholderText, Mode=OneWay}"
                         HorizontalAlignment="Center"
                         VerticalAlignment="Center"
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                        Margin="0,120,0,0" />
-                </ScrollViewer>
+                        Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.ShowPreviewPlaceholder), Mode=OneWay}" />
+                </Grid>
             </Grid>
         </Grid>
 

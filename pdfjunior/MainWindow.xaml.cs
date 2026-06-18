@@ -41,6 +41,11 @@ public sealed partial class MainWindow : Window
         ViewModel.SelectedFile = FileListView.SelectedItem as Models.PdfFileItem;
     }
 
+    private void PreviewScrollViewer_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        ViewModel.PreviewViewportWidth = e.NewSize.Width;
+    }
+
     private void GridSplitter_PointerEntered(object sender, PointerRoutedEventArgs e)
     {
         SetSizeWestEastCursor();
