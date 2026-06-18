@@ -4,7 +4,6 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Dispatching;
-using Microsoft.UI.Xaml.Media.Imaging;
 using pdfjunior.Models;
 using pdfjunior.Services;
 using pdfjunior.Strings;
@@ -15,16 +14,12 @@ public partial class MainViewModel : ObservableObject
 {
     private readonly IFilePickerService _filePickerService;
     private readonly IPdfValidationService _validationService;
-    private readonly IPdfPreviewService _previewService;
     private readonly DispatcherQueue? _dispatcherQueue;
     private readonly SemaphoreSlim _validationSemaphore = new(3);
     private readonly List<PdfFileItem> _subscribedItems = [];
     private readonly Dictionary<PdfFileItem, CancellationTokenSource> _validationCts = [];
-    private CancellationTokenSource? _previewCts;
 
     public ObservableCollection<PdfFileItem> Files { get; } = [];
-
-    public ObservableCollection<BitmapImage> PreviewPages { get; } = [];
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RemoveCommand))]
@@ -40,7 +35,7 @@ public partial class MainViewModel : ObservableObject
     public partial PreviewState Preview { get; set; }
 
     [ObservableProperty]
-    public partial double PreviewViewportWidth { get; set; }
+    public partial Uri? PreviewUri { get; set; }
 
     public bool ShowPreviewPages => Preview == PreviewState.Ready;
 
@@ -77,33 +72,21 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    public MainViewModel(IFilePickerService filePickerService, IPdfValidationService validationService, IPdfPreviewService previewService)
+    public MainViewModel(IFilePickerService filePickerService, IPdfValidationService validationService)
     {
         _filePickerService = filePickerService;
         _validationService = validationService;
-        _previewService = previewService;
         _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
         Files.CollectionChanged += OnFilesCollectionChanged;
     }
 
-    partial void OnSelectedFileChanged(PdfFileItem? value) => _ = UpdatePreviewAsync(value);
+    partial void OnSelectedFileChanged(PdfFileItem? value) => UpdatePreview(value);
 
-    partial void OnPreviewViewportWidthChanged(double value)
+    private void UpdatePreview(PdfFileItem? item)
     {
-        if (value > 0 && Preview != PreviewState.Ready && SelectedFile?.Status == ValidationStatus.Valid)
-            _ = UpdatePreviewAsync(SelectedFile);
-    }
-
-    private async Task UpdatePreviewAsync(PdfFileItem? item)
-    {
-        _previewCts?.Cancel();
-        _previewCts?.Dispose();
-        var cts = _previewCts = new CancellationTokenSource();
-
-        PreviewPages.Clear();
-
         if (item is null)
         {
+            PreviewUri = null;
             Preview = PreviewState.None;
             return;
         }
@@ -111,40 +94,24 @@ public partial class MainViewModel : ObservableObject
         switch (item.Status)
         {
             case ValidationStatus.Checking:
+                PreviewUri = null;
                 Preview = PreviewState.Checking;
                 return;
             case ValidationStatus.ErrorPassword:
+                PreviewUri = null;
                 Preview = PreviewState.ExcludedPassword;
                 return;
             case ValidationStatus.ErrorCorrupt:
             case ValidationStatus.ErrorTimeout:
+                PreviewUri = null;
                 Preview = PreviewState.ExcludedCorrupt;
                 return;
         }
 
-        try
-        {
-            var path = item.Path;
-            var pages = await _previewService.RenderPagesAsync(path, PreviewViewportWidth, cts.Token);
-
-            if (cts.IsCancellationRequested || !ReferenceEquals(item, SelectedFile))
-                return;
-
-            RunOnUI(() =>
-            {
-                foreach (var page in pages)
-                    PreviewPages.Add(page);
-                Preview = PreviewState.Ready;
-            });
-        }
-        catch (OperationCanceledException)
-        {
-        }
-        catch
-        {
-            if (!cts.IsCancellationRequested && ReferenceEquals(item, SelectedFile))
-                RunOnUI(() => Preview = PreviewState.ExcludedCorrupt);
-        }
+        // Same instance navigated again only changes Uri if the path changed,
+        // so re-selecting the same item (e.g. after a drag-reorder) is a no-op for WebView2.
+        PreviewUri = new Uri(item.Path);
+        Preview = PreviewState.Ready;
     }
 
     private void OnFilesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -200,7 +167,7 @@ public partial class MainViewModel : ObservableObject
             NotifyMergeStateChanged();
 
             if (ReferenceEquals(sender, SelectedFile))
-                _ = UpdatePreviewAsync(SelectedFile);
+                UpdatePreview(SelectedFile);
         }
     }
 

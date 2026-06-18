@@ -6,7 +6,6 @@
     xmlns:local="using:pdfjunior"
     xmlns:models="using:pdfjunior.Models"
     xmlns:strings="using:pdfjunior.Strings"
-    xmlns:imaging="using:Microsoft.UI.Xaml.Media.Imaging"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
@@ -100,20 +99,10 @@
 
                 <!-- Preview content -->
                 <Grid Grid.Row="1">
-                    <ScrollViewer
-                        x:Name="PreviewScrollViewer"
-                        HorizontalScrollBarVisibility="Disabled"
-                        VerticalScrollBarVisibility="Auto"
-                        SizeChanged="PreviewScrollViewer_SizeChanged"
-                        Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.ShowPreviewPages), Mode=OneWay}">
-                        <ItemsControl ItemsSource="{x:Bind ViewModel.PreviewPages, Mode=OneWay}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="imaging:BitmapImage">
-                                    <Image Source="{x:Bind}" Stretch="Uniform" HorizontalAlignment="Stretch" />
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
+                    <WebView2
+                        x:Name="PreviewWebView"
+                        Source="{x:Bind ViewModel.PreviewUri, Mode=OneWay}"
+                        Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.ShowPreviewPages), Mode=OneWay}" />
 
                     <TextBlock
                         Text="{x:Bind ViewModel.PreviewPlaceholderText, Mode=OneWay}"
