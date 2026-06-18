@@ -36,7 +36,7 @@ These are platform-independent and still bind the C#/WinUI build:
 
 Decisions from the legacy run that the fresh PRD preserves, for traceability:
 
-- **Reorder = Move up/down buttons** (legacy sprint change 2026-06-10; reversed an earlier drag-and-drop design). **Decided** (user, 2026-06-14): buttons kept, drag-reorder out of scope. PRD FR-4.
+- **Reorder = drag-and-drop** (legacy sprint change 2026-06-10 reversed an earlier drag-and-drop design; user decided 2026-06-14 to keep Move up/down buttons). **Reversed again 2026-06-18** (user, commit 859232b): reorder is now native `ListView` drag-and-drop (`CanReorderItems`/`AllowDrop`/`CanDragItems`); the Move up/down buttons were removed. PRD FR-4.
 - **Selectable/removable while *checking*** (legacy sprint change 2026-06-13, FR-2.1 / decision #27; the `isChecking` selection guard was to be removed). Carried as PRD FR-2 / FR-3 / FR-5.
 - **Output filename set in the native Save dialog, default `merged.pdf`** (user decision, 2026-06-14 — replaced the legacy separate filename field). The OS handles naming, validity, and overwrite. PRD FR-7. This supersedes the legacy "blank/whitespace → merged.pdf" rule, which no longer applies (there is no in-app filename field).
 - **App keeps no memory of last output location** (carries spirit of legacy decision #11). PRD FR-7 (Assumption).

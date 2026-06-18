@@ -6,7 +6,7 @@ sources:
   - ../../prds/prd-pdf-junior-2026-06-14/addendum.md
   - ../../prds/prd-pdf-junior-2026-06-14/reconcile-ux.md
   - ../../architecture.md
-updated: 2026-06-14
+updated: 2026-06-18
 ---
 
 # PDF Junior — Experience Spine
@@ -24,7 +24,7 @@ Single-surface native Windows 11 desktop app. WinUI 3 via Windows App SDK, C# / 
 | Title bar | Native Windows, Mica backdrop | Window chrome — drag, minimize, maximize, close |
 | Sidebar (left pane) | Scrollable File list (`ListView`, single-select) | Ordered list of added PDFs; each item shows filename + validation status/page count |
 | Drag divider | Vertical resize handle between sidebar and preview | User-adjustable pane split; resets each launch |
-| Preview toolbar | **[Move up] [Move down]** (grouped) — gap — **[Remove]** | Reorder and remove the Selected file; all actions require a selection |
+| Preview toolbar | **[Remove]** | Remove the Selected file (requires a selection). Reorder is by drag-and-drop in the File list — there are no Move up / Move down controls |
 | Preview pane (right) | Read-only rendered PDF pages, fit-to-width, vertical scroll | View the Selected file's content; placeholder states when nothing selected, checking, or flagged |
 | Progress indicator | Thin `ProgressBar` above the Action bar | Visible only during merges exceeding 2 seconds; determinate by file count |
 | Action bar (bottom) | Right-aligned: **[Add PDF(s)] [Merge]** | Primary actions — add files and trigger merge |
@@ -108,8 +108,8 @@ Behavioral. Visual specs live in `DESIGN.md.Components`.
 | **File list** (`ListView`) | Sidebar | Single-select. Clicking an item selects it and loads its preview (FR-5). Selection and preview are always in sync. Items display filename (Body) + validation status or page count (Caption). Newly added files append to the bottom. No auto-scroll — the list does not scroll to reveal newly added items; the user scrolls manually if needed. Duplicate paths (case-insensitive) are silently skipped. |
 | **List item** | File list row | Shows filename and a caption-styled secondary line: "Checking…" / "{N} pages" / "Password protected" / "Could not read file". Selectable, removable, and reorderable at all times regardless of validation status (including while checking). Flagged-file captions use the critical color (`{colors.critical}`). |
 | **Preview pane** (`ScrollViewer`) | Right pane | Read-only. Renders PDF pages as bitmaps fit-to-width with vertical scroll only. No editing, annotation, zoom, or page controls. When the selected file is flagged, the pane shows the exclusion notice (MC-8 or MC-9) centered — no preview content is rendered, and the notice alone is sufficient feedback. When nothing is selected: MC-2. When the file list is empty: sidebar shows MC-1. |
-| **Preview toolbar** | Top of right pane | Right-aligned: **[Move up] [Move down]** grouped, then a visual gap, then **[Remove]**. All three act on the Selected file. All disabled when nothing is selected. Move up disabled at position 1; Move down disabled at last position. The gap between Move and Remove prevents accidental removal. |
-| **Move up / Move down** | Preview toolbar | Move the Selected file one position in the File list. **Selection follows the moved item** — it stays selected at its new position. **The preview pane content is unchanged** (same file, no reload, no flicker). The File list visually reorders. |
+| **Preview toolbar** | Top of right pane | Right-aligned: **[Remove]** only. Acts on the Selected file; disabled when nothing is selected. Reorder is performed by dragging items within the File list — there are no Move up / Move down buttons. |
+| **Drag-reorder** | File list | Dragging a List item to a new position reorders the File list (native `ListView` `CanReorderItems`/`AllowDrop`/`CanDragItems`), mutating the bound collection directly so Merge consumes the new order. **The dragged item stays selected** and **the preview pane content is unchanged** (same file, no reload, no flicker). Any item is draggable regardless of validation status. Disabled while a merge is running. |
 | **Remove** | Preview toolbar | Removes the Selected file from the File list. After removal, selection clears — no neighbor is auto-selected. Preview pane returns to MC-2 state. |
 | **Add PDF(s)** button | Action bar | Opens the native `FileOpenPicker` filtered to `.pdf`, multi-select enabled. Selected files are appended to the File list; each enters *checking* status (FR-2). Cancelling the picker is a silent no-op. Always enabled. |
 | **Merge** button | Action bar | `AccentButtonStyle`. Enabled only when ≥1 valid file, 0 flagged files, 0 checking files (FR-10). When disabled, a tooltip explains why (MC-10, MC-11, or MC-12 — three distinct messages for three distinct blocking conditions). Pressing Merge **immediately dismisses any visible success/error banner** before opening the Save dialog. |
@@ -129,7 +129,7 @@ Behavioral. Visual specs live in `DESIGN.md.Components`.
 | **File selected (valid)** | Preview pane | PDF pages rendered fit-to-width, vertical scroll. Preview toolbar buttons enabled per position. |
 | **File selected (flagged)** | Preview pane | Exclusion notice (MC-8 or MC-9) centered in the preview pane. No preview content — the notice alone is sufficient. The file is still selectable and removable. |
 | **File removed** | Sidebar + preview | Item disappears from list. Selection clears. Preview returns to MC-2. If the list is now empty, sidebar shows MC-1. Merge-enabled recalculated. |
-| **File reordered** | Sidebar + preview | Item moves one position. Selection follows the moved item. **Preview content is unchanged** — no reload, no flicker. |
+| **File reordered** | Sidebar + preview | The dragged item moves to its drop position. It stays selected. **Preview content is unchanged** — no reload, no flicker. |
 | **Merge pressed** | Whole window | Any visible success/error banner is **immediately dismissed**. The native Save dialog opens (default filename "merged.pdf", `.pdf` filter). The app remains interactive while the dialog is open — no lock. |
 | **Save dialog cancelled** | Whole window | Silent no-op. No error, no output. UI returns to idle. Window-close guard not engaged. |
 | **Merge executing (< 2 s)** | Action bar + content | UI locked: File list read-only, Add/Merge/toolbar disabled. Preview pane stays scrollable. **No progress affordance** — the merge finishes before the user would notice. |
@@ -145,13 +145,15 @@ Behavioral. Visual specs live in `DESIGN.md.Components`.
 PDF Junior is a mouse-and-touch utility for a general audience. No custom keyboard shortcuts are defined for v1. The app relies on:
 
 - **WinUI's built-in keyboard support:** Tab navigation between controls, Space/Enter to activate buttons, arrow keys in the ListView, Escape to close dialogs.
-- **Mouse:** click to select list items, click buttons to act, scroll the preview pane, drag the sidebar divider.
+- **Mouse:** click to select list items, drag list items to reorder them, click buttons to act, scroll the preview pane, drag the sidebar divider.
 - **Touch:** tap equivalents of mouse actions on touch-enabled Windows devices.
 - **File picker keyboard:** the native `FileOpenPicker` and `FileSavePicker` have full keyboard support from Windows.
 
-No vim-style shortcuts, no command palette, no drag-to-reorder. The interaction surface is deliberately small — buttons and clicks.
+No vim-style shortcuts, no command palette. Reordering the File list is by drag-and-drop (native `ListView`); every other action is a button or a click. The interaction surface is deliberately small.
 
-**Banned:** drag-to-reorder (decided — Move up/down buttons instead), hover-only affordances (all actions are button-click), right-click context menus (no contextual actions beyond the toolbar), keyboard shortcuts that require learning.
+**Banned:** hover-only affordances (all actions are button-click or a deliberate drag), right-click context menus (no contextual actions beyond the toolbar), keyboard shortcuts that require learning.
+
+> **Decision 2026-06-18:** Drag-to-reorder is now the reorder mechanism, reversing the 2026-06-14 decision that used Move up / Move down buttons and banned drag-to-reorder.
 
 ## Accessibility Floor
 
@@ -174,7 +176,7 @@ Marcus, a middle-school teacher, has four PDF handouts he made this morning — 
 1. He launches PDF Junior from the Start menu. The window opens in under three seconds: an empty sidebar that says "Add PDFs to get started" and a blank preview pane.
 2. He clicks **Add PDF(s)**. The native file picker opens to his Documents folder. He multi-selects the four handouts and clicks Open.
 3. Four items appear in the sidebar, each briefly showing "Checking…" and then resolving: "4 pages", "3 pages", "2 pages", "6 pages."
-4. He clicks the third file to check it — the preview pane fills with a fit-to-width render of the handout. He notices it should come second. He clicks **Move up** — the item slides to position two, stays selected, and the preview doesn't flicker.
+4. He clicks the third file to check it — the preview pane fills with a fit-to-width render of the handout. He notices it should come second. He drags it up one position — it lands at position two, stays selected, and the preview doesn't flicker.
 5. **Climax:** He clicks **Merge**. The Save dialog opens with "merged.pdf" pre-filled. He keeps the name, navigates to the Desktop, and clicks Save. The merge finishes in under a second — no progress bar, no spinner, just a green banner: "Merged successfully — merged.pdf." He clicks **Open folder**; Explorer opens to the Desktop. Four PDFs, one click, done. He uploads the file before the bell rings.
 
 ### Flow 2 — Sophie removes two unreadable files (error recovery)

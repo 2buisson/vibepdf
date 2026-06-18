@@ -6,6 +6,8 @@ baseline_commit: dd65d1e
 
 Status: review
 
+> **Updated 2026-06-18:** Reorder changed from Move up / Move down buttons to native `ListView` drag-and-drop (commit 859232b). ACs 4–6 below and the Change Log entry reflect this. The Tasks/Subtasks and Dev Notes further down document the original 2026-06-16 button implementation and are retained as history — see the Change Log for what superseded them.
+
 ## Story
 
 As a user,
@@ -20,15 +22,11 @@ so that I control exactly which files are merged and in what order.
 
 3. **Given** a flagged file (error-password, error-corrupt, or error-timeout) is selected **When** the user clicks Remove **Then** it is removed exactly like any other file.
 
-4. **Given** a file is selected that is not the first in the list **When** the user clicks Move up **Then** the file moves up one position and remains selected **And** the Preview pane continues to show the same file without reloading.
+4. **Given** a file is dragged to a new position in the File list **When** the user drops it **Then** the File list reorders to match the drop and the bound `Files` collection reflects the new display order (so Merge consumes the new order).
 
-5. **Given** a file is selected that is not the last in the list **When** the user clicks Move down **Then** the file moves down one position and remains selected **And** the Preview pane continues to show the same file without reloading.
+5. **Given** a file is dragged to a new position **When** the user drops it **Then** the dragged file remains the Selected file **And** the Preview pane continues to show it without reloading.
 
-6. **Given** the first file in the list is selected **When** the user views the Preview toolbar **Then** Move up is disabled and Move down is enabled.
-
-7. **Given** the last file in the list is selected **When** the user views the Preview toolbar **Then** Move down is disabled and Move up is enabled.
-
-8. **Given** no file is selected **When** the user views the Preview toolbar **Then** Move up, Move down, and Remove are all disabled.
+6. **Given** a file in any validation status (checking, valid, or flagged) **When** the user drags it **Then** it can be reordered like any other item.
 
 ## Tasks / Subtasks
 
@@ -342,3 +340,4 @@ claude-opus-4-8 (Claude Code, bmad-dev-story workflow)
 ## Change Log
 
 - 2026-06-16: Implemented Remove/MoveUp/MoveDown commands with tightened CanExecute gating and collection-change re-evaluation; resolved two deferred 1-2 items (in-flight validation cancellation on removal + removed-item write guards). Added 15 unit tests (suite 24 → 39, all green; 0 warnings/0 errors). Status → review. Manual VS F5 visual pass pending.
+- 2026-06-18: **Reorder reworked from Move up / Move down toolbar buttons to native `ListView` drag-and-drop** (`CanReorderItems`/`AllowDrop`/`CanDragItems`), which mutates the bound `Files` collection directly so Merge still consumes display order (commit 859232b). Removed the `MoveUp`/`MoveDown` `[RelayCommand]`s, their `CanMoveUp`/`CanMoveDown` gates, the two `[NotifyCanExecuteChangedFor]` attributes on `SelectedFile`, and the two toolbar `Button`s in `MainWindow.xaml`; the `Remove` button and its gate stay unchanged. Tests: the `MoveUp`/`MoveDown`/`CanMove*` cases were replaced by `Reorder_PreservesSelectionAndOrder` (mirrors the `Files.Move` the ListView performs and asserts selection + order survive) and `Remove_NoSelection_Disabled`. ACs 4–6 above rewritten for drag-and-drop; the original button-based AC #4–#8 and the Tasks/Dev Notes are retained below as history. This **reverses the 2026-06-14 PRD FR-4 / UX decision** (Move up/down buttons; drag-reorder out of scope), at the user's request. Planning artifacts (PRD, epics, architecture, EXPERIENCE.md, DESIGN.md) reconciled via bmad-correct-course on 2026-06-18.

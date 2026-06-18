@@ -21,7 +21,7 @@ FR-2: Each added List item is validated asynchronously to determine its Validati
 
 FR-3: The user can remove any List item by selecting it and using Remove in the Preview toolbar. After removal, selection clears and the Preview pane returns to its empty state. Remove is enabled only when a file is selected.
 
-FR-4: The user can change the position of the Selected file using Move up and Move down buttons in the Preview toolbar. Selection follows the moved item. Move up disabled at first position; Move down disabled at last; both disabled when nothing is selected.
+FR-4: The user can change the order of files by dragging a List item to a new position in the File list (native ListView drag-and-drop, mutating the bound collection directly). The dragged item stays selected and its preview is unchanged. Items are draggable at any validation status; drag-reorder is disabled while a merge is running. [Decision 2026-06-18: reverses the 2026-06-14 Move up/down button design.]
 
 FR-5: The user can view a read-only preview of the Selected file in the Preview pane. Valid files render fit-to-width with vertical scroll. Checking files show a placeholder. Flagged files show an inline exclusion notice. Empty selection shows "Select a file to preview it"; empty list shows "Add PDFs to get started."
 
@@ -85,7 +85,7 @@ N/A — UX Design document was excluded from this analysis per user direction.
 FR-1: Epic 1 — Add PDF files via file picker
 FR-2: Epic 1 — Validate added files (async, status + page count)
 FR-3: Epic 1 — Remove a file
-FR-4: Epic 1 — Reorder files (Move up/down)
+FR-4: Epic 1 — Reorder files (drag-and-drop)
 FR-5: Epic 1 — Preview the selected file
 FR-6: Epic 2 — Trigger the merge
 FR-7: Epic 2 — Choose output destination (Save dialog)
@@ -129,7 +129,7 @@ So that I immediately understand how to start merging PDFs.
 
 **Given** the app is launched
 **When** the main window appears
-**Then** the two-pane layout is visible: a left sidebar (File list area), a right Preview pane, a Preview toolbar (Move up, Move down, Remove — all disabled), and a bottom Action bar with Add PDF(s) and Merge (Merge disabled)
+**Then** the two-pane layout is visible: a left sidebar (File list area), a right Preview pane, a Preview toolbar (Remove — disabled), and a bottom Action bar with Add PDF(s) and Merge (Merge disabled)
 
 **Given** the app is launched with no files added
 **When** the user views the sidebar
@@ -204,27 +204,21 @@ So that I control exactly which files are merged and in what order.
 **When** the user clicks Remove
 **Then** it is removed exactly like any other file
 
-**Given** a file is selected that is not the first in the list
-**When** the user clicks Move up
-**Then** the file moves up one position and remains selected
-**And** the Preview pane continues to show the same file without reloading
+**Given** a file is dragged to a new position in the File list
+**When** the user drops it
+**Then** the File list reorders to match the drop and the bound collection reflects the new display order (so Merge consumes the new order)
 
-**Given** a file is selected that is not the last in the list
-**When** the user clicks Move down
-**Then** the file moves down one position and remains selected
-**And** the Preview pane continues to show the same file without reloading
+**Given** a file is dragged to a new position
+**When** the user drops it
+**Then** the dragged file remains selected and the Preview pane continues to show it without reloading
 
-**Given** the first file in the list is selected
-**When** the user views the Preview toolbar
-**Then** Move up is disabled and Move down is enabled
-
-**Given** the last file in the list is selected
-**When** the user views the Preview toolbar
-**Then** Move down is disabled and Move up is enabled
+**Given** a file in any validation status (checking, valid, or flagged)
+**When** the user drags it
+**Then** it can be reordered like any other item
 
 **Given** no file is selected
 **When** the user views the Preview toolbar
-**Then** Move up, Move down, and Remove are all disabled
+**Then** Remove is disabled (reorder needs no selection — any item is dragged directly)
 
 ### Story 1.4: Preview Selected File
 
@@ -327,7 +321,7 @@ So that I know the merge is working and can quickly find my output file.
 
 **Given** a merge is in progress
 **When** the File list and toolbar are viewed
-**Then** the File list is read-only, Add PDF(s), Merge, Move up, Move down, and Remove are all disabled
+**Then** the File list is read-only (drag-reorder disabled), and Add PDF(s), Merge, and Remove are all disabled
 **And** the Preview pane remains scrollable
 
 **Given** a merge has been running for less than 2 seconds

@@ -25,9 +25,10 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 **Functional Requirements:** 12 FRs in 4 capability groups.
 - *File List Management (FR-1–FR-4)* — add via native multi-select picker with
   duplicate-skip; async per-file validation (checking/valid/error-password/
-  error-corrupt + page count); remove; reorder via Move up/down. Architecturally:
-  an observable, ordered in-memory collection bound to a ListView, with an async
-  validation pipeline feeding a per-item state machine.
+  error-corrupt + page count); remove; reorder via native ListView drag-and-drop.
+  Architecturally: an observable, ordered in-memory collection bound to a ListView
+  (drag-reorder mutates the collection directly), with an async validation pipeline
+  feeding a per-item state machine.
 - *PDF Preview (FR-5)* — read-only, fit-to-width, vertical-scroll render of the
   selected file; placeholder/exclusion states for checking/flagged. Architecturally:
   page-to-bitmap rendering via Windows.Data.Pdf into a scrollable WinUI surface.
@@ -501,7 +502,7 @@ introduced only if a UserControl is later extracted; none is required for v1.
 | FR-1 Add PDFs | `FilePickerService` (open) + `MainViewModel.AddFilesCommand` |
 | FR-2 Validate | `PdfValidationService` + VM validation pipeline + `PdfFileItem.Status` |
 | FR-3 Remove | `MainViewModel.RemoveCommand` |
-| FR-4 Reorder | `MainViewModel.MoveUp/MoveDownCommand` |
+| FR-4 Reorder | `ListView` drag-and-drop (`CanReorderItems`/`AllowDrop`/`CanDragItems`) mutating the bound `Files` collection — no view-model command [Decision 2026-06-18] |
 | FR-5 Preview | `PdfPreviewService` + MainWindow preview pane |
 | FR-6 Trigger merge | `MainViewModel.MergeCommand` (+ `CanMerge`) |
 | FR-7 Output destination | `FilePickerService` (FileSavePicker) |

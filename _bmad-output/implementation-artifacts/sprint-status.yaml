@@ -1,5 +1,5 @@
 # generated: 2026-06-14
-# last_updated: 2026-06-16
+# last_updated: 2026-06-18
 # project: pdf-junior
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-06-14
-last_updated: 2026-06-16
+last_updated: 2026-06-18
 project: pdf-junior
 project_key: NOKEY
 tracking_system: file-system
@@ -56,3 +56,19 @@ development_status:
   2-2-execute-merge-report-success: backlog
   2-3-error-handling-close-guard: backlog
   epic-2-retrospective: optional
+
+# CHANGE NOTE (2026-06-18, via bmad-correct-course — commit 859232b):
+#   FR-4 reorder changed from Move up / Move down buttons to native ListView
+#   drag-and-drop. Story 1-3 stays in 'review' — its ACs + Change Log were updated
+#   to match; planning artifacts (PRD, epics, architecture, EXPERIENCE.md, DESIGN.md)
+#   were reconciled. No status transitions required by this change.
+#
+#   FUTURE-STORY IMPACT (no re-estimation needed; specs already updated):
+#     - 2-2-execute-merge-report-success: when this story is drafted, the merge
+#       UI-lock must DISABLE drag-reorder (set CanReorderItems/CanDragItems/AllowDrop
+#       = False, or make the list read-only) rather than disabling Move up/down
+#       buttons. epics.md Story 2.2 AC already reflects this.
+#     - 1-4-preview-selected-file: NO change — the "preview does not reload on
+#       reorder" guarantee still holds (drag uses ObservableCollection.Move, so the
+#       selected instance is preserved). Re-verify during 1-4 implementation.
+#     - 2-1 / 2-3: no reorder dependency; no change.

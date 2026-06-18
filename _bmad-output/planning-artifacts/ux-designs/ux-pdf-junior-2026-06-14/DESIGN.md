@@ -5,7 +5,7 @@ status: final
 sources:
   - ../../prds/prd-pdf-junior-2026-06-14/prd.md
   - ../../architecture.md
-updated: 2026-06-14
+updated: 2026-06-18
 colors:
   # No brand overrides. All colors inherited from WinUI theme resources.
   # The user's Windows accent color (SystemAccentColor) is the only chromatic
@@ -128,11 +128,10 @@ PDF Junior uses standard WinUI controls exclusively. No custom components.
 
 | WinUI Control | Role | Visual spec |
 |---|---|---|
-| `ListView` | File list (sidebar) | Single-select. Selected-item highlight uses accent. Items show filename + caption-sized status/page-count. |
+| `ListView` | File list (sidebar) | Single-select with built-in drag-and-drop reorder (`CanReorderItems`/`AllowDrop`/`CanDragItems`). Selected-item highlight uses accent. Items show filename + caption-sized status/page-count. |
 | `Button` | **Add PDF(s)** | Default style (no accent). Right-aligned in the Action bar. |
 | `Button` | **Merge** | `AccentButtonStyle`. Right-aligned in the Action bar, adjacent to Add. |
-| `Button` | **Move up**, **Move down** | Default style, icon-only or compact. Grouped in the Preview toolbar, left of Remove. |
-| `Button` | **Remove** | Default style. Preview toolbar, separated from Move buttons by a gap. |
+| `Button` | **Remove** | Default style. The sole Preview toolbar control. (Reorder is `ListView` drag-and-drop — no Move up / Move down buttons as of 2026-06-18.) |
 | `InfoBar` | Success banner | `Severity="Success"`. Inline, above the Action bar or at the top of the content area. Auto-dismisses after ~8 seconds; manually closable. Contains an **Open folder** action button. |
 | `InfoBar` | Error banner | `Severity="Error"`. Same position. Manual dismiss only (no auto-dismiss). |
 | `ProgressBar` | Merge progress | Thin, determinate (by file count). Above the Action bar. Visible only after 2 seconds of merge time. |

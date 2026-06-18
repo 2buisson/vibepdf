@@ -2,7 +2,7 @@
 title: "PDF Junior"
 status: final
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-18
 ---
 
 # PRD: PDF Junior
@@ -42,7 +42,7 @@ PDF Junior fills that gap as a permanent, privacy-first utility. Everything happ
 - **UJ-1. Marcus merges four handouts for the first time.**
   - **Persona + context:** Marcus, a teacher, has four PDF handouts he wants as one file to upload to the class portal.
   - **Entry state:** Fresh launch, empty file list, "Add PDFs to get started" placeholder.
-  - **Path:** Clicks **Add PDF(s)** → multi-selects four PDFs in the native file picker → each appears in the file list showing a brief *checking* state, then resolves to *valid* with a page count → clicks one to preview it → selects a misordered file and clicks **Move up** (selection follows the moved file).
+  - **Path:** Clicks **Add PDF(s)** → multi-selects four PDFs in the native file picker → each appears in the file list showing a brief *checking* state, then resolves to *valid* with a page count → clicks one to preview it → drags a misordered file up one position in the list (it stays selected).
   - **Climax:** Clicks **Merge**; the native Save dialog opens with the filename pre-filled as `merged.pdf`. He keeps the name, navigates to the Desktop, and clicks **Save**; the merge runs (progress shown only if it exceeds 2 s); a success banner reads "Merged successfully — merged.pdf."
   - **Resolution:** Clicks **Open folder**; File Explorer opens to the output. The file list is preserved.
 
@@ -75,7 +75,7 @@ PDF Junior fills that gap as a permanent, privacy-first utility. Everything happ
 - **Valid file** — a List item with Validation status *valid*.
 - **Selected file** — the single currently selected List item (single-select). Its content drives the Preview pane and is the target of Preview toolbar actions.
 - **Preview pane** — the read-only render area for the Selected file.
-- **Preview toolbar** — the controls above the Preview pane: **Move up**, **Move down** (grouped), and **Remove**, all acting on the Selected file.
+- **Preview toolbar** — the control(s) above the Preview pane: **Remove**, acting on the Selected file. Reordering is done by dragging List items within the File list — there are no Move up / Move down controls.
 - **Action bar** — the bottom bar containing **Add PDF(s)** and **Merge**.
 - **File picker** — the native Windows open-file dialog invoked by **Add PDF(s)**, filtered to `.pdf`, supporting multi-select.
 - **Save dialog** — the native Windows save-file picker invoked by **Merge**, where the user chooses the destination folder and the output filename (pre-filled as `merged.pdf`) in one step. The OS enforces filename validity and handles overwrite confirmation.
@@ -124,15 +124,15 @@ The user can remove any List item before merging by selecting it and using **Rem
 
 #### FR-4: Reorder files
 
-The user can change the position of the Selected file using **Move up** and **Move down** buttons in the Preview toolbar. Merge output reflects File list order. Realizes UJ-1, UJ-3.
+The user can change the order of files by dragging a List item to a new position within the File list. Merge output reflects File list display order. Realizes UJ-1, UJ-3.
 
 **Consequences (testable):**
-- **Move up** / **Move down** act on the Selected file; selection follows the moved item.
-- The Preview pane continues to show the moved (still-Selected) file without reloading or flicker.
-- **Move up** is disabled when the Selected file is first; **Move down** is disabled when it is last; both are disabled when nothing is selected.
-- Reordering changes the order in which files are combined by Merge (FR-8).
+- A List item can be dragged and dropped to any position in the File list; the list reorders to match the drop, and the bound File list collection is mutated directly so Merge consumes the new display order (FR-8).
+- The dragged item remains the Selected file after the drop, and the Preview pane continues to show it without reloading or flicker.
+- Any List item can be dragged regardless of its Validation status (including while *checking* or while Flagged).
+- While a merge is running (FR-6), the File list is read-only and drag-reorder is disabled until the merge completes.
 
-**Notes:** Reorder is **Move up / Move down buttons** (decided — carries the legacy 2026-06-10 reversal of an earlier drag-and-drop design). The control is fixed; drag-reorder is not in scope.
+**Notes:** Reorder is **native ListView drag-and-drop** (`CanReorderItems` / `AllowDrop` / `CanDragItems`), which mutates the bound File list directly. There are no Move up / Move down controls; the Preview toolbar holds only **Remove**. **Decision 2026-06-18: this reverses the 2026-06-14 decision that chose Move up / Move down buttons and kept drag-reorder out of scope (which itself carried the legacy 2026-06-10 reversal of drag-and-drop).**
 
 ### 4.2 PDF Preview
 
@@ -251,7 +251,7 @@ PDF Junior is a **merge-only** utility. It is not, and in v1 will not become:
 
 - Add PDFs via native file picker (multi-select, append, duplicate-skip).
 - Asynchronous per-file validation with *checking* / *valid* / *error-password* / *error-corrupt* states and page counts.
-- Remove and reorder (Move up/down buttons) List items; selection drives preview.
+- Remove and reorder (drag-and-drop) List items; selection drives preview.
 - Read-only in-app PDF preview (**confirmed v1**).
 - Merge of Valid files in order, off the UI thread, with progress indicator over 2 s.
 - Native Save dialog for output (folder + filename, default `merged.pdf`; OS-enforced validity and overwrite confirmation).
@@ -315,7 +315,7 @@ PDF Junior is a **merge-only** utility. It is not, and in v1 will not become:
 - **Tone by situation.** Errors are non-blaming and explanatory; failures state the reason plainly with no apology-filler; success is brief and affirming, then gets out of the way.
 - **Respect the OS.** Inherits Fluent Design wholesale: no custom brand palette, no decorative illustration. Uses the user's Windows accent color (on **Merge** and selection only) and follows the OS light/dark theme with no in-app toggle. Mica backdrop on the title bar.
 - **Holds the user's work.** The File list persists across both success and failure, so retrying or producing a second output never requires re-adding files.
-- **Safe destructive actions.** **Remove** is isolated in the Preview toolbar, requires a Selected file, and is grouped apart from Move up/down to avoid accidental activation. Output overwrite is confirmed by the native Save dialog.
+- **Safe destructive actions.** **Remove** is isolated in the Preview toolbar and requires a Selected file, reducing the risk of accidental activation — it is the only Preview toolbar control (reorder is by drag-and-drop in the File list). Output overwrite is confirmed by the native Save dialog.
 - **Hard anti-patterns (Don'ts):** no splash screen, no onboarding or what's-new modals, no upsell/ads/rating prompts, no account gates, no AI-feature prompts.
 
 ## 11. Information Architecture
@@ -324,7 +324,7 @@ PDF Junior is a **merge-only** utility. It is not, and in v1 will not become:
 
 - **Title bar** — native Windows, Fluent Mica backdrop.
 - **Sidebar (left)** — the scrollable File list. Resizable via a drag divider; resets on each launch (no persistence).
-- **Preview toolbar (top of right pane)** — right-aligned: **[Move up] [Move down]** (grouped), gap, then **[Remove]** — all acting on the Selected file.
+- **Preview toolbar (top of right pane)** — right-aligned: **[Remove]**, acting on the Selected file. Reorder is by drag-and-drop in the File list; there are no Move up / Move down controls.
 - **Preview pane (right)** — read-only render of the Selected file; fit-to-width, vertical scroll only.
 - **Progress indicator** — a thin bar above the Action bar, visible only during a merge exceeding 2 s.
 - **Action bar (bottom, full width)** — right-aligned **[Add PDF(s)] [Merge]**. (No filename field — the output name is set in the Save dialog.)
@@ -345,4 +345,4 @@ PDF Junior is a **merge-only** utility. It is not, and in v1 will not become:
 - **§4.3 FR-7** — The app keeps no memory of the last output location between sessions (carries the spirit of legacy decision #11; the native Save dialog's own MRU is OS behavior).
 - **§4.3 FR-8** — Progress-indicator determinacy (determinate vs. indeterminate) depends on the chosen PDF library's API and is resolved in architecture.
 
-*(The initial draft's assumptions on output-filename handling, reorder control, and accessibility were resolved by user decisions on 2026-06-14 and are no longer open.)*
+*(The initial draft's assumptions on output-filename handling, reorder control, and accessibility were resolved by user decisions on 2026-06-14. The reorder-control decision was subsequently reversed on 2026-06-18 — reorder is now drag-and-drop; see FR-4 — and none remain open.)*
