@@ -22,8 +22,13 @@ public class FilePickerService : IFilePickerService
         return files.Select(f => f.Path).ToList();
     }
 
-    public Task<StorageFile?> PickSaveFileAsync(string suggestedName)
+    public async Task<StorageFile?> PickSaveFileAsync(string suggestedName)
     {
-        return Task.FromResult<StorageFile?>(null);
+        var picker = new FileSavePicker();
+        InitializeWithWindow.Initialize(picker, Hwnd);
+        picker.SuggestedFileName = suggestedName;                 // "merged.pdf"
+        picker.DefaultFileExtension = ".pdf";
+        picker.FileTypeChoices.Add("PDF document", new List<string> { ".pdf" });
+        return await picker.PickSaveFileAsync();                  // null when the user cancels
     }
 }

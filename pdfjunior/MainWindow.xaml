@@ -37,9 +37,9 @@
                     ItemsSource="{x:Bind ViewModel.Files, Mode=OneWay}"
                     SelectionMode="Single"
                     SelectionChanged="FileListView_SelectionChanged"
-                    CanDragItems="True"
-                    AllowDrop="True"
-                    CanReorderItems="True"
+                    CanDragItems="{x:Bind ViewModel.CanReorderFiles, Mode=OneWay}"
+                    AllowDrop="{x:Bind ViewModel.CanReorderFiles, Mode=OneWay}"
+                    CanReorderItems="{x:Bind ViewModel.CanReorderFiles, Mode=OneWay}"
                     Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.HasFiles), Mode=OneWay}">
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="models:PdfFileItem">
@@ -114,10 +114,29 @@
             </Grid>
         </Grid>
 
-        <!-- Row 1: Progress bar placeholder (collapsed) -->
-        <ProgressBar
-            Grid.Row="1"
-            Visibility="Collapsed" />
+        <!-- Row 1: Merge banners (success / error) + determinate progress bar -->
+        <StackPanel Grid.Row="1" Spacing="4" Padding="16,0">
+            <InfoBar
+                Severity="Success"
+                IsOpen="{x:Bind ViewModel.IsSuccessBannerOpen, Mode=TwoWay}"
+                Message="{x:Bind ViewModel.SuccessBannerText, Mode=OneWay}"
+                IsClosable="True">
+                <InfoBar.ActionButton>
+                    <Button
+                        Content="{x:Bind strings:UiStrings.MergeSuccessOpenFolder}"
+                        Command="{x:Bind ViewModel.OpenFolderCommand, Mode=OneTime}" />
+                </InfoBar.ActionButton>
+            </InfoBar>
+            <InfoBar
+                Severity="Error"
+                IsOpen="{x:Bind ViewModel.IsErrorBannerOpen, Mode=TwoWay}"
+                Message="{x:Bind ViewModel.ErrorBannerText, Mode=OneWay}"
+                IsClosable="True" />
+            <ProgressBar
+                Minimum="0" Maximum="100"
+                Value="{x:Bind ViewModel.MergeProgress, Mode=OneWay}"
+                Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.IsProgressVisible), Mode=OneWay}" />
+        </StackPanel>
 
         <!-- Row 2: Action bar -->
         <Grid Grid.Row="2" Padding="16,8">
@@ -128,11 +147,16 @@
                 <Button
                     Content="Add PDF(s)"
                     Command="{x:Bind ViewModel.AddFilesCommand, Mode=OneTime}" />
-                <Button
-                    Content="Merge"
-                    Style="{StaticResource AccentButtonStyle}"
-                    Command="{x:Bind ViewModel.MergeCommand, Mode=OneTime}"
-                    ToolTipService.ToolTip="{x:Bind ViewModel.MergeDisabledReason, Mode=OneWay}" />
+                <!-- Border wrapper stays hit-test-visible so the disabled-Merge tooltip
+                     (MC-10/11/12) renders; WinUI does not show a tooltip on a disabled Button. -->
+                <Border
+                    ToolTipService.ToolTip="{x:Bind ViewModel.MergeDisabledReason, Mode=OneWay}"
+                    Background="Transparent">
+                    <Button
+                        Content="Merge"
+                        Style="{StaticResource AccentButtonStyle}"
+                        Command="{x:Bind ViewModel.MergeCommand, Mode=OneTime}" />
+                </Border>
             </StackPanel>
         </Grid>
     </Grid>

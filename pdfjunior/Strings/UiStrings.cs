@@ -42,6 +42,9 @@ public static class UiStrings
     // MC-12: Merge disabled tooltip — still checking
     public const string MergeDisabledStillChecking = "Waiting for files to finish checking";
 
+    // Default filename pre-filled in the Save dialog (FR-7)
+    public const string DefaultMergeFileName = "merged.pdf";
+
     // MC-13: Success banner (format with filename)
     public const string MergeSuccess = "Merged successfully — {0}";
 

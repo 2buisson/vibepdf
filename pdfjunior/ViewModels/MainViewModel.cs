@@ -14,10 +14,17 @@ public partial class MainViewModel : ObservableObject
 {
     private readonly IFilePickerService _filePickerService;
     private readonly IPdfValidationService _validationService;
+    private readonly IPdfMergeService _mergeService;
+    private readonly IOutputWriter _outputWriter;
+    private readonly IFolderLauncher _folderLauncher;
     private readonly DispatcherQueue? _dispatcherQueue;
     private readonly SemaphoreSlim _validationSemaphore = new(3);
     private readonly List<PdfFileItem> _subscribedItems = [];
     private readonly Dictionary<PdfFileItem, CancellationTokenSource> _validationCts = [];
+
+    private string? _lastOutputFolder;          // captured on success; used by Open folder
+    private CancellationTokenSource? _mergeCts;  // created per merge (close-guard cancels it in 2.3)
+    private DispatcherQueueTimer? _successDismissTimer; // one-shot ~8 s auto-dismiss (UI thread only)
 
     public ObservableCollection<PdfFileItem> Files { get; } = [];
 
@@ -37,6 +44,39 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     public partial Uri? PreviewUri { get; set; }
 
+    // --- Merge UI-lock / progress / banner state (story 2.2) ---
+
+    [ObservableProperty]
+    public partial bool IsMerging { get; set; }
+
+    public bool CanReorderFiles => !IsMerging;
+
+    [ObservableProperty]
+    public partial double MergeProgress { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsProgressVisible { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsSuccessBannerOpen { get; set; }
+
+    [ObservableProperty]
+    public partial string? SuccessBannerText { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsErrorBannerOpen { get; set; }
+
+    [ObservableProperty]
+    public partial string? ErrorBannerText { get; set; }
+
+    partial void OnIsMergingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CanReorderFiles));
+        NotifyMergeStateChanged();                 // re-raises CanMerge + MergeDisabledReason + MergeCommand
+        AddFilesCommand.NotifyCanExecuteChanged();
+        RemoveCommand.NotifyCanExecuteChanged();
+    }
+
     public bool ShowPreviewPages => Preview == PreviewState.Ready;
 
     public bool ShowPreviewPlaceholder => Preview != PreviewState.Ready;
@@ -54,28 +94,37 @@ public partial class MainViewModel : ObservableObject
         Files.Count > 0
         && Files.Any(f => f.Status == ValidationStatus.Valid)
         && !Files.Any(f => f.Status is ValidationStatus.ErrorPassword or ValidationStatus.ErrorCorrupt or ValidationStatus.ErrorTimeout)
-        && !Files.Any(f => f.Status == ValidationStatus.Checking);
+        && !Files.Any(f => f.Status == ValidationStatus.Checking)
+        && !IsMerging;
 
     public string? MergeDisabledReason
     {
         get
         {
             if (Files.Count == 0)
-                return UiStrings.MergeDisabledNoFiles;
-            if (Files.Any(f => f.Status is ValidationStatus.ErrorPassword or ValidationStatus.ErrorCorrupt or ValidationStatus.ErrorTimeout))
-                return UiStrings.MergeDisabledFlaggedFiles;
+                return UiStrings.MergeDisabledNoFiles;                 // MC-10 (empty)
             if (Files.Any(f => f.Status == ValidationStatus.Checking))
-                return UiStrings.MergeDisabledStillChecking;
+                return UiStrings.MergeDisabledStillChecking;           // MC-12 (checking outranks flagged)
             if (!Files.Any(f => f.Status == ValidationStatus.Valid))
-                return UiStrings.MergeDisabledNoFiles;
-            return null;
+                return UiStrings.MergeDisabledNoFiles;                 // MC-10 (all-flagged → "add a PDF")
+            if (Files.Any(f => f.Status is ValidationStatus.ErrorPassword or ValidationStatus.ErrorCorrupt or ValidationStatus.ErrorTimeout))
+                return UiStrings.MergeDisabledFlaggedFiles;            // MC-11 (has valid + flagged)
+            return null;                                               // enabled
         }
     }
 
-    public MainViewModel(IFilePickerService filePickerService, IPdfValidationService validationService)
+    public MainViewModel(
+        IFilePickerService filePickerService,
+        IPdfValidationService validationService,
+        IPdfMergeService mergeService,
+        IOutputWriter outputWriter,
+        IFolderLauncher folderLauncher)
     {
         _filePickerService = filePickerService;
         _validationService = validationService;
+        _mergeService = mergeService;
+        _outputWriter = outputWriter;
+        _folderLauncher = folderLauncher;
         _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
         Files.CollectionChanged += OnFilesCollectionChanged;
     }
@@ -186,7 +235,9 @@ public partial class MainViewModel : ObservableObject
             _dispatcherQueue.TryEnqueue(action);
     }
 
-    [RelayCommand]
+    private bool CanAddFiles() => !IsMerging;
+
+    [RelayCommand(CanExecute = nameof(CanAddFiles))]
     private async Task AddFilesAsync()
     {
         var paths = await _filePickerService.PickFilesAsync();
@@ -259,16 +310,121 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand(CanExecute = nameof(CanMerge))]
-    private Task MergeAsync()
+    private async Task MergeAsync()
     {
-        return Task.CompletedTask;
+        // AC #11 — Merge press clears any visible banner before the dialog opens.
+        IsSuccessBannerOpen = false;
+        IsErrorBannerOpen = false;
+
+        var destination = await _filePickerService.PickSaveFileAsync(UiStrings.DefaultMergeFileName);
+        if (destination is null)
+            return; // FR-7: cancelling the Save dialog is a silent no-op (no lock engaged)
+
+        var paths = Files
+            .Where(f => f.Status == ValidationStatus.Valid)
+            .Select(f => f.Path)
+            .ToList();
+
+        _mergeCts = new CancellationTokenSource();
+        IsMerging = true;          // AC #4 — lock engages only AFTER confirm (AC #5)
+        MergeProgress = 0;
+        var showProgress = StartProgressDelay(); // AC #6/#7 — reveal the bar only after 2 s
+
+        try
+        {
+            var progress = new Progress<double>(p => MergeProgress = p); // captures UI sync context
+            using var buffer = new MemoryStream();
+            var outcome = await _mergeService.MergeAsync(paths, buffer, progress, _mergeCts.Token);
+
+            if (outcome is MergeOutcome.Failure)
+            {
+                ShowError(UiStrings.MergeErrorGeneric); // 2.2 = generic only; 2.3 refines
+                return;
+            }
+
+            buffer.Position = 0;
+            await _outputWriter.WriteAsync(buffer, destination);
+
+            _lastOutputFolder = Path.GetDirectoryName(destination.Path);
+            ShowSuccess(string.Format(UiStrings.MergeSuccess, destination.Name)); // AC #8
+        }
+        catch (OperationCanceledException)
+        {
+            // Cooperative cancel (close-guard, 2.3). No banner this story.
+        }
+        catch
+        {
+            ShowError(UiStrings.MergeErrorGeneric); // 2.2 generic; 2.3 maps specific reasons
+        }
+        finally
+        {
+            showProgress.Cancel();
+            IsProgressVisible = false;
+            IsMerging = false;     // AC #10 — UI unlocks; Files untouched (preserved)
+            _mergeCts.Dispose();
+            _mergeCts = null;
+        }
+    }
+
+    // Reveal the determinate progress bar only after a 2 s delay; cancelled the
+    // instant the merge finishes so sub-2 s merges show nothing (AC #6/#7).
+    private CancellationTokenSource StartProgressDelay()
+    {
+        var cts = new CancellationTokenSource();
+        _ = Task.Delay(TimeSpan.FromSeconds(2), cts.Token)
+                .ContinueWith(
+                    _ => RunOnUI(() => IsProgressVisible = true),
+                    cts.Token,
+                    TaskContinuationOptions.OnlyOnRanToCompletion,
+                    TaskScheduler.Default);
+        return cts;
+    }
+
+    // Banner helpers enforce "at most one banner visible" (AC #8/#11).
+    private void ShowSuccess(string text)
+    {
+        IsErrorBannerOpen = false;
+        SuccessBannerText = text;
+        IsSuccessBannerOpen = true;
+        StartSuccessAutoDismiss(); // ~8 s one-shot
+    }
+
+    private void ShowError(string text)
+    {
+        IsSuccessBannerOpen = false;
+        ErrorBannerText = text;
+        IsErrorBannerOpen = true;  // manual dismiss only — no auto-dismiss
+    }
+
+    // Success auto-dismiss ~8 s (AC #8). UI-thread only; in the test host
+    // (_dispatcherQueue is null) auto-dismiss is F5-verified.
+    private void StartSuccessAutoDismiss()
+    {
+        if (_dispatcherQueue is null) return;
+        _successDismissTimer?.Stop();
+        _successDismissTimer = _dispatcherQueue.CreateTimer();
+        _successDismissTimer.Interval = TimeSpan.FromSeconds(8);
+        _successDismissTimer.IsRepeating = false;
+        _successDismissTimer.Tick += (_, _) => IsSuccessBannerOpen = false;
+        _successDismissTimer.Start();
+    }
+
+    [RelayCommand]
+    private async Task OpenFolderAsync()
+    {
+        if (_lastOutputFolder is null) return;
+        var ok = await _folderLauncher.LaunchFolderAsync(_lastOutputFolder);
+        if (!ok)
+        {
+            SuccessBannerText = UiStrings.FolderNotFound; // MC-19, shown inline in the open banner
+        }
     }
 
     // Reorder is handled by the file ListView's built-in drag-and-drop
     // (CanReorderItems/AllowDrop/CanDragItems), which mutates the bound Files
     // collection directly — no view-model command is involved.
 
-    private bool CanRemove() => SelectedFile is not null;
+    private bool CanRemove() => SelectedFile is not null && !IsMerging;
 
     [RelayCommand(CanExecute = nameof(CanRemove))]
     private void Remove()
