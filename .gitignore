@@ -86,3 +86,6 @@ Desktop.ini
 $RECYCLE.BIN/
 *~
 *.swp
+
+# Cursor
+.agents/
