@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-06-14
-last_updated: 2026-06-18
+last_updated: 2026-06-20
 project: pdf-junior
 project_key: NOKEY
 tracking_system: file-system
@@ -51,10 +51,10 @@ development_status:
   epic-1-retrospective: optional
 
   # Epic 2: Merge, Output & Safety
-  epic-2: backlog
-  2-1-merge-gating-save-dialog: backlog
-  2-2-execute-merge-report-success: backlog
-  2-3-error-handling-close-guard: backlog
+  epic-2: in-progress
+  2-1-merge-gating-save-dialog: review
+  2-2-execute-merge-report-success: review
+  2-3-error-handling-close-guard: ready-for-dev
   epic-2-retrospective: optional
 
 # CHANGE NOTE (2026-06-18, via bmad-correct-course — commit 859232b):
