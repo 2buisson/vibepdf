@@ -24,7 +24,7 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition x:Name="SidebarColumn" Width="280" MinWidth="200" MaxWidth="600" />
+            <ColumnDefinition x:Name="SidebarColumn" Width="350" MinWidth="200" MaxWidth="600" />
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
