@@ -35,6 +35,7 @@ public partial class App : Application
         services.AddSingleton<FilePickerService>();
         services.AddSingleton<IFilePickerService>(sp => sp.GetRequiredService<FilePickerService>());
         services.AddSingleton<IPdfValidationService, PdfValidationService>();
+        services.AddSingleton<IPdfPreviewService, PdfPreviewService>();
         services.AddSingleton<IPdfMergeService, PdfSharpMergeService>();
         services.AddSingleton<IOutputWriter, OutputWriter>();
         services.AddSingleton<IFolderLauncher, FolderLauncher>();

@@ -99,10 +99,25 @@
 
                 <!-- Preview content -->
                 <Grid Grid.Row="1">
-                    <WebView2
-                        x:Name="PreviewWebView"
-                        Source="{x:Bind ViewModel.PreviewUri, Mode=OneWay}"
-                        Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.ShowPreviewPages), Mode=OneWay}" />
+                    <!-- Valid file: first-page image centered in a 300px card -->
+                    <Border
+                        Width="300"
+                        Padding="8"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Translation="0,0,32"
+                        Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.ShowPreviewImage), Mode=OneWay}">
+                        <Border.Shadow>
+                            <ThemeShadow />
+                        </Border.Shadow>
+                        <Image
+                            Source="{x:Bind ViewModel.PreviewImage, Mode=OneWay}"
+                            Stretch="Uniform" />
+                    </Border>
 
                     <TextBlock
                         Text="{x:Bind ViewModel.PreviewPlaceholderText, Mode=OneWay}"

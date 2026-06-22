@@ -1,3 +1,4 @@
+using Microsoft.UI.Xaml.Media.Imaging;
 using NSubstitute;
 using pdfjunior.Models;
 using pdfjunior.Services;
@@ -15,9 +16,10 @@ public class MainViewModelTests
     private readonly IPdfMergeService _mergeService = Substitute.For<IPdfMergeService>();
     private readonly IOutputWriter _outputWriter = Substitute.For<IOutputWriter>();
     private readonly IFolderLauncher _folderLauncher = Substitute.For<IFolderLauncher>();
+    private readonly IPdfPreviewService _previewService = Substitute.For<IPdfPreviewService>();
 
     private MainViewModel CreateViewModel() =>
-        new(_pickerService, _validationService, _mergeService, _outputWriter, _folderLauncher);
+        new(_pickerService, _validationService, _mergeService, _outputWriter, _folderLauncher, _previewService);
 
     [Fact]
     public void Files_StartsEmpty()
@@ -561,7 +563,7 @@ public class MainViewModelTests
         vm.SelectedFile = null;
 
         Assert.Equal(PreviewState.None, vm.Preview);
-        Assert.Null(vm.PreviewUri);
+        Assert.Null(vm.PreviewImage);
         Assert.True(vm.ShowPreviewPlaceholder);
         Assert.Equal(UiStrings.EmptyPreviewPlaceholder, vm.PreviewPlaceholderText);
     }
@@ -578,7 +580,8 @@ public class MainViewModelTests
 
         Assert.Equal(PreviewState.Checking, vm.Preview);
         Assert.Equal(UiStrings.PreviewChecking, vm.PreviewPlaceholderText);
-        Assert.Null(vm.PreviewUri);
+        Assert.Null(vm.PreviewImage);
+        await _previewService.DidNotReceive().RenderFirstPageAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -612,7 +615,7 @@ public class MainViewModelTests
     }
 
     [Fact]
-    public async Task Preview_SelectValid_NavigatesToFile()
+    public async Task Preview_SelectValid_RendersFirstPage()
     {
         var vm = CreateViewModel();
         var item = new PdfFileItem(@"C:\test\a.pdf") { Status = ValidationStatus.Valid };
@@ -622,12 +625,12 @@ public class MainViewModelTests
         await WaitForValidation();
 
         Assert.Equal(PreviewState.Ready, vm.Preview);
-        Assert.True(vm.ShowPreviewPages);
-        Assert.Equal(new Uri(item.Path), vm.PreviewUri);
+        Assert.True(vm.ShowPreviewImage);
+        await _previewService.Received(1).RenderFirstPageAsync(item.Path, Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task Preview_CheckingResolvesToValid_NavigatesAutomatically()
+    public async Task Preview_CheckingResolvesToValid_RendersAutomatically()
     {
         var vm = CreateViewModel();
         var item = new PdfFileItem(@"C:\test\a.pdf") { Status = ValidationStatus.Checking };
@@ -641,7 +644,7 @@ public class MainViewModelTests
         await WaitForValidation();
 
         Assert.Equal(PreviewState.Ready, vm.Preview);
-        Assert.Equal(new Uri(item.Path), vm.PreviewUri);
+        await _previewService.Received(1).RenderFirstPageAsync(item.Path, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -658,12 +661,11 @@ public class MainViewModelTests
         vm.SelectedFile = b;
         await WaitForValidation();
 
-        var uriAfterSelect = vm.PreviewUri;
-
         vm.Files.Move(1, 0); // user drags b above a
         await WaitForValidation();
 
-        Assert.Equal(uriAfterSelect, vm.PreviewUri);
+        // AC #10: reorder is a Files.Move (no SelectedFile change) → no re-render.
+        await _previewService.Received(1).RenderFirstPageAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
         Assert.Equal(PreviewState.Ready, vm.Preview);
         Assert.Same(b, vm.SelectedFile);
     }
@@ -682,8 +684,33 @@ public class MainViewModelTests
         vm.RemoveCommand.Execute(null);
 
         Assert.Equal(PreviewState.None, vm.Preview);
-        Assert.Null(vm.PreviewUri);
+        Assert.Null(vm.PreviewImage);
         Assert.Null(vm.SelectedFile);
+    }
+
+    [Fact]
+    public async Task Preview_SelectionSupersededMidRender_DropsStaleResult()
+    {
+        // A's first-page render is in flight when the user selects B; A's late
+        // completion must be dropped by the staleness guard, not applied.
+        var renderA = new TaskCompletionSource<BitmapImage?>();
+        var a = new PdfFileItem(@"C:\test\a.pdf") { Status = ValidationStatus.Valid };
+        var b = new PdfFileItem(@"C:\test\b.pdf") { Status = ValidationStatus.Checking };
+        _previewService.RenderFirstPageAsync(a.Path, Arg.Any<CancellationToken>()).Returns(renderA.Task);
+
+        var vm = CreateViewModel();
+        vm.Files.Add(a);
+        vm.Files.Add(b);
+
+        vm.SelectedFile = a; // starts the (pending) render of A
+        vm.SelectedFile = b; // supersedes: B is Checking, no render
+        Assert.Equal(PreviewState.Checking, vm.Preview);
+
+        renderA.SetResult(null); // A completes after B was selected
+        await WaitForValidation();
+
+        Assert.Equal(PreviewState.Checking, vm.Preview); // A's result dropped
+        await _previewService.Received(1).RenderFirstPageAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     private static async Task WaitForValidation()

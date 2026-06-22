@@ -4,7 +4,6 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.Web.WebView2.Core;
 using pdfjunior.Models;
 using pdfjunior.Strings;
 using pdfjunior.ViewModels;
@@ -35,33 +34,11 @@ public sealed partial class MainWindow : Window
         AppWindow.Resize(new SizeInt32(900, 640));
 
         SetMinWindowSize();
-        _ = InitializePreviewWebViewAsync();
     }
 
     private void FileListView_SelectionChanged(object sender, Microsoft.UI.Xaml.Controls.SelectionChangedEventArgs e)
     {
         ViewModel.SelectedFile = FileListView.SelectedItem as Models.PdfFileItem;
-    }
-
-    // Spike: embed Edge's built-in PDF viewer instead of rendering pages to bitmaps,
-    // with its toolbar hidden entirely (every CoreWebView2PdfToolbarItems flag set).
-    private async Task InitializePreviewWebViewAsync()
-    {
-        await PreviewWebView.EnsureCoreWebView2Async();
-        PreviewWebView.CoreWebView2.Settings.HiddenPdfToolbarItems =
-            CoreWebView2PdfToolbarItems.Save
-            | CoreWebView2PdfToolbarItems.Print
-            | CoreWebView2PdfToolbarItems.SaveAs
-            | CoreWebView2PdfToolbarItems.ZoomIn
-            | CoreWebView2PdfToolbarItems.ZoomOut
-            | CoreWebView2PdfToolbarItems.Rotate
-            | CoreWebView2PdfToolbarItems.FitPage
-            | CoreWebView2PdfToolbarItems.PageLayout
-            | CoreWebView2PdfToolbarItems.Bookmarks
-            | CoreWebView2PdfToolbarItems.PageSelector
-            | CoreWebView2PdfToolbarItems.Search
-            | CoreWebView2PdfToolbarItems.FullScreen
-            | CoreWebView2PdfToolbarItems.MoreSettings;
     }
 
     private void GridSplitter_PointerEntered(object sender, PointerRoutedEventArgs e)

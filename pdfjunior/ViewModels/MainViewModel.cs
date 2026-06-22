@@ -4,6 +4,7 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Dispatching;
+using Microsoft.UI.Xaml.Media.Imaging;
 using pdfjunior.Models;
 using pdfjunior.Services;
 using pdfjunior.Strings;
@@ -17,12 +18,14 @@ public partial class MainViewModel : ObservableObject
     private readonly IPdfMergeService _mergeService;
     private readonly IOutputWriter _outputWriter;
     private readonly IFolderLauncher _folderLauncher;
+    private readonly IPdfPreviewService _previewService;
     private readonly DispatcherQueue? _dispatcherQueue;
     private readonly SemaphoreSlim _validationSemaphore = new(3);
     private readonly List<PdfFileItem> _subscribedItems = [];
     private readonly Dictionary<PdfFileItem, CancellationTokenSource> _validationCts = [];
 
     private string? _lastOutputFolder;          // captured on success; used by Open folder
+    private CancellationTokenSource? _previewCts; // single in-flight first-page render; cancel on every selection/status change
     private CancellationTokenSource? _mergeCts;  // created per merge (close-guard cancels it in 2.3)
     private DispatcherQueueTimer? _successDismissTimer; // one-shot ~8 s auto-dismiss (UI thread only)
 
@@ -36,13 +39,13 @@ public partial class MainViewModel : ObservableObject
     public partial bool HasFiles { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowPreviewPages))]
+    [NotifyPropertyChangedFor(nameof(ShowPreviewImage))]
     [NotifyPropertyChangedFor(nameof(ShowPreviewPlaceholder))]
     [NotifyPropertyChangedFor(nameof(PreviewPlaceholderText))]
     public partial PreviewState Preview { get; set; }
 
     [ObservableProperty]
-    public partial Uri? PreviewUri { get; set; }
+    public partial BitmapImage? PreviewImage { get; set; }
 
     // --- Merge UI-lock / progress / banner state (story 2.2) ---
 
@@ -77,7 +80,7 @@ public partial class MainViewModel : ObservableObject
         RemoveCommand.NotifyCanExecuteChanged();
     }
 
-    public bool ShowPreviewPages => Preview == PreviewState.Ready;
+    public bool ShowPreviewImage => Preview == PreviewState.Ready;
 
     public bool ShowPreviewPlaceholder => Preview != PreviewState.Ready;
 
@@ -118,24 +121,31 @@ public partial class MainViewModel : ObservableObject
         IPdfValidationService validationService,
         IPdfMergeService mergeService,
         IOutputWriter outputWriter,
-        IFolderLauncher folderLauncher)
+        IFolderLauncher folderLauncher,
+        IPdfPreviewService previewService)
     {
         _filePickerService = filePickerService;
         _validationService = validationService;
         _mergeService = mergeService;
         _outputWriter = outputWriter;
         _folderLauncher = folderLauncher;
+        _previewService = previewService;
         _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
         Files.CollectionChanged += OnFilesCollectionChanged;
     }
 
-    partial void OnSelectedFileChanged(PdfFileItem? value) => UpdatePreview(value);
+    partial void OnSelectedFileChanged(PdfFileItem? value) => _ = UpdatePreviewAsync(value);
 
-    private void UpdatePreview(PdfFileItem? item)
+    private async Task UpdatePreviewAsync(PdfFileItem? item)
     {
+        // Single in-flight render: cancel + dispose the previous one before doing anything.
+        _previewCts?.Cancel();
+        _previewCts?.Dispose();
+        _previewCts = null;
+
         if (item is null)
         {
-            PreviewUri = null;
+            PreviewImage = null;
             Preview = PreviewState.None;
             return;
         }
@@ -143,24 +153,47 @@ public partial class MainViewModel : ObservableObject
         switch (item.Status)
         {
             case ValidationStatus.Checking:
-                PreviewUri = null;
+                PreviewImage = null;
                 Preview = PreviewState.Checking;
                 return;
             case ValidationStatus.ErrorPassword:
-                PreviewUri = null;
+                PreviewImage = null;
                 Preview = PreviewState.ExcludedPassword;
                 return;
             case ValidationStatus.ErrorCorrupt:
             case ValidationStatus.ErrorTimeout:
-                PreviewUri = null;
+                PreviewImage = null;
                 Preview = PreviewState.ExcludedCorrupt;
                 return;
         }
 
-        // Same instance navigated again only changes Uri if the path changed,
-        // so re-selecting the same item (e.g. after a drag-reorder) is a no-op for WebView2.
-        PreviewUri = new Uri(item.Path);
-        Preview = PreviewState.Ready;
+        // Valid → render the first page. Runs on the UI thread (BitmapImage is a
+        // DependencyObject); _previewCts + the ReferenceEquals guard drop a slow
+        // render of file A that lands after the user has selected file B.
+        var cts = _previewCts = new CancellationTokenSource();
+        try
+        {
+            var bitmap = await _previewService.RenderFirstPageAsync(item.Path, cts.Token);
+
+            if (cts.IsCancellationRequested || !ReferenceEquals(item, SelectedFile))
+                return;
+
+            PreviewImage = bitmap;
+            Preview = PreviewState.Ready;
+        }
+        catch (OperationCanceledException)
+        {
+            // Superseded by a newer selection/status change — drop it silently.
+        }
+        catch
+        {
+            // A file that validated Valid but fails to render falls back to the corrupt notice.
+            if (ReferenceEquals(item, SelectedFile))
+            {
+                PreviewImage = null;
+                Preview = PreviewState.ExcludedCorrupt;
+            }
+        }
     }
 
     private void OnFilesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -216,7 +249,7 @@ public partial class MainViewModel : ObservableObject
             NotifyMergeStateChanged();
 
             if (ReferenceEquals(sender, SelectedFile))
-                UpdatePreview(SelectedFile);
+                _ = UpdatePreviewAsync(SelectedFile);
         }
     }
 
