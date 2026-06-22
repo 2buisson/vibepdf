@@ -1,5 +1,7 @@
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -8,6 +10,7 @@ using pdfjunior.Models;
 using pdfjunior.Strings;
 using pdfjunior.ViewModels;
 using Windows.Graphics;
+using Windows.UI;
 using WinRT.Interop;
 
 namespace pdfjunior;
@@ -35,8 +38,14 @@ public sealed partial class MainWindow : Window
 
         SetMinWindowSize();
 
-        // The standard title bar is drawn by DWM and must be told to switch to
-        // dark mode; keep it in sync with the app's resolved (system) theme.
+        // Extend content under the title bar so the sidebar's tinted background
+        // runs to the top of the window. AppTitleBar (from XAML) becomes the
+        // draggable region; the system still draws the caption buttons on top.
+        ExtendsContentIntoTitleBar = true;
+        AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
+        SetTitleBar(AppTitleBar);
+
+        // Keep the title bar in sync with the app's resolved (system) theme.
         ApplyTitleBarTheme();
         if (Content is FrameworkElement root)
         {
@@ -49,8 +58,27 @@ public sealed partial class MainWindow : Window
         if (Content is not FrameworkElement root)
             return;
 
-        int useDarkMode = root.ActualTheme == ElementTheme.Dark ? 1 : 0;
+        var isDark = root.ActualTheme == ElementTheme.Dark;
+
+        // Keep the window frame/border in step with the theme.
+        int useDarkMode = isDark ? 1 : 0;
         DwmSetWindowAttribute(Hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref useDarkMode, sizeof(int));
+
+        // With content extended under the title bar the framework draws the
+        // caption buttons: colour their glyphs to match the theme and keep the
+        // backgrounds transparent so the Mica/sidebar backdrop shows through.
+        // Hover/pressed backgrounds are left at their defaults so the close
+        // button keeps its native red.
+        var titleBar = AppWindow.TitleBar;
+        var foreground = isDark ? Colors.White : Colors.Black;
+        var inactiveForeground = Color.FromArgb(0xFF, 0x80, 0x80, 0x80);
+
+        titleBar.ButtonBackgroundColor = Colors.Transparent;
+        titleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
+        titleBar.ButtonForegroundColor = foreground;
+        titleBar.ButtonHoverForegroundColor = foreground;
+        titleBar.ButtonPressedForegroundColor = foreground;
+        titleBar.ButtonInactiveForegroundColor = inactiveForeground;
     }
 
     private void FileListView_SelectionChanged(object sender, Microsoft.UI.Xaml.Controls.SelectionChangedEventArgs e)

@@ -15,55 +15,68 @@
         <MicaBackdrop />
     </Window.SystemBackdrop>
 
-    <!-- Content area: sidebar + preview. The preview panel also hosts the
-         merge banners and action bar. -->
+    <!-- Content extends under the title bar so the sidebar's tinted background
+         reaches the very top of the window. Row 0 is the title bar strip; row 1
+         holds the app content. The sidebar background spans both rows. -->
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="48" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition x:Name="SidebarColumn" Width="280" MinWidth="200" MaxWidth="600" />
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <!-- Sidebar -->
-        <Border Grid.Column="0" Background="{ThemeResource SolidBackgroundFillColorBaseAltBrush}">
+        <!-- Sidebar background: spans the title bar row so the tinted backdrop
+             runs edge-to-edge from the top of the window. -->
+        <Border
+            Grid.Row="0"
+            Grid.RowSpan="2"
+            Grid.Column="0"
+            Background="{ThemeResource SolidBackgroundFillColorBaseAltBrush}">
             <Border.Shadow>
                 <ThemeShadow />
             </Border.Shadow>
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
+        </Border>
 
-                <!-- File-list command bar: Add / Remove act on the list below.
+        <!-- Sidebar content sits below the title bar (row 1). -->
+        <Grid Grid.Row="1" Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- File-list command bar: Add / Remove act on the list below.
                  Always visible (even when empty) so the first file can be added.
                  Disabled state comes from the bound commands' CanExecute. -->
-                <CommandBar
+            <CommandBar
                 Grid.Row="0"
                 Background="Transparent"
                 IsOpen="False"
                 DefaultLabelPosition="Right"
                 OverflowButtonVisibility="Collapsed"
                 HorizontalAlignment="Left">
-                    <AppBarButton
+                <AppBarButton
                     Label="Add PDF(s)"
                     Command="{x:Bind ViewModel.AddFilesCommand, Mode=OneTime}">
-                        <AppBarButton.Icon>
-                            <SymbolIcon Symbol="Add" />
-                        </AppBarButton.Icon>
-                    </AppBarButton>
-                    <AppBarButton
+                    <AppBarButton.Icon>
+                        <SymbolIcon Symbol="Add" />
+                    </AppBarButton.Icon>
+                </AppBarButton>
+                <AppBarButton
                     Label="Remove"
                     Command="{x:Bind ViewModel.RemoveCommand, Mode=OneTime}">
-                        <AppBarButton.Icon>
-                            <SymbolIcon Symbol="Delete" />
-                        </AppBarButton.Icon>
-                    </AppBarButton>
-                </CommandBar>
+                    <AppBarButton.Icon>
+                        <SymbolIcon Symbol="Delete" />
+                    </AppBarButton.Icon>
+                </AppBarButton>
+            </CommandBar>
 
-                <!-- File list + empty placeholder (overlapping, visibility-toggled) -->
-                <Grid Grid.Row="1">
-                    <ListView
+            <!-- File list + empty placeholder (overlapping, visibility-toggled) -->
+            <Grid Grid.Row="1">
+                <ListView
                     x:Name="FileListView"
                     ItemsSource="{x:Bind ViewModel.Files, Mode=OneWay}"
                     SelectionMode="Single"
@@ -72,35 +85,35 @@
                     AllowDrop="{x:Bind ViewModel.CanReorderFiles, Mode=OneWay}"
                     CanReorderItems="{x:Bind ViewModel.CanReorderFiles, Mode=OneWay}"
                     Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.HasFiles), Mode=OneWay}">
-                        <ListView.ItemTemplate>
-                            <DataTemplate x:DataType="models:PdfFileItem">
-                                <StackPanel Padding="4,8">
-                                    <TextBlock
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="models:PdfFileItem">
+                            <StackPanel Padding="4,8">
+                                <TextBlock
                                     Text="{x:Bind DisplayName, Mode=OneTime}"
                                     Style="{StaticResource BodyTextBlockStyle}"
                                     TextTrimming="CharacterEllipsis" />
-                                    <TextBlock
+                                <TextBlock
                                     Text="{x:Bind local:MainWindow.FormatStatus(Status, PageCount), Mode=OneWay}"
                                     Style="{StaticResource CaptionTextBlockStyle}"
                                     Foreground="{x:Bind local:MainWindow.StatusForeground(Status), Mode=OneWay}" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListView.ItemTemplate>
-                    </ListView>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
 
-                    <TextBlock
+                <TextBlock
                     Text="{x:Bind strings:UiStrings.EmptyFileListPlaceholder}"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                     Visibility="{x:Bind local:MainWindow.BoolToVisibilityInverse(ViewModel.HasFiles), Mode=OneWay}" />
-                </Grid>
             </Grid>
-        </Border>
+        </Grid>
 
-        <!-- GridSplitter -->
+        <!-- GridSplitter (row 1 only, so it never overlaps the title bar strip) -->
         <Border
             x:Name="GridSplitter"
+            Grid.Row="1"
             Grid.Column="1"
             Width="8"
             Background="Transparent"
@@ -112,7 +125,7 @@
 
         <!-- Preview panel: preview content (row 0), merge banners (row 1),
              action bar (row 2). The info bar sits directly above the action bar. -->
-        <Grid Grid.Column="2">
+        <Grid Grid.Row="1" Grid.Column="2">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
@@ -193,6 +206,22 @@
                     </Border>
                 </StackPanel>
             </Grid>
+        </Grid>
+
+        <!-- Title bar drag region: a transparent strip across the top, laid over
+             the sidebar background and preview. The system caption buttons float
+             at the right; SetTitleBar() in code-behind makes this area draggable. -->
+        <Grid
+            x:Name="AppTitleBar"
+            Grid.Row="0"
+            Grid.Column="0"
+            Grid.ColumnSpan="3"
+            Background="Transparent">
+            <TextBlock
+                Text="{x:Bind strings:UiStrings.AppTitle}"
+                VerticalAlignment="Center"
+                Margin="16,0,0,0"
+                Style="{StaticResource CaptionTextBlockStyle}" />
         </Grid>
     </Grid>
 </Window>

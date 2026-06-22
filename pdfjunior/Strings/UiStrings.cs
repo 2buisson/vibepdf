@@ -2,6 +2,9 @@ namespace pdfjunior.Strings;
 
 public static class UiStrings
 {
+    // App / window title (also shown in the custom title bar)
+    public const string AppTitle = "PDF Junior";
+
     // MC-1: Empty file list placeholder
     public const string EmptyFileListPlaceholder = "Add PDFs to get started";
 
