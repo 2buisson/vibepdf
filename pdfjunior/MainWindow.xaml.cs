@@ -34,6 +34,23 @@ public sealed partial class MainWindow : Window
         AppWindow.Resize(new SizeInt32(900, 640));
 
         SetMinWindowSize();
+
+        // The standard title bar is drawn by DWM and must be told to switch to
+        // dark mode; keep it in sync with the app's resolved (system) theme.
+        ApplyTitleBarTheme();
+        if (Content is FrameworkElement root)
+        {
+            root.ActualThemeChanged += (_, _) => ApplyTitleBarTheme();
+        }
+    }
+
+    private void ApplyTitleBarTheme()
+    {
+        if (Content is not FrameworkElement root)
+            return;
+
+        int useDarkMode = root.ActualTheme == ElementTheme.Dark ? 1 : 0;
+        DwmSetWindowAttribute(Hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref useDarkMode, sizeof(int));
     }
 
     private void FileListView_SelectionChanged(object sender, Microsoft.UI.Xaml.Controls.SelectionChangedEventArgs e)
@@ -150,6 +167,13 @@ public sealed partial class MainWindow : Window
 
         return DefSubclassProc(hWnd, uMsg, wParam, lParam);
     }
+
+    // DWMWA_USE_IMMERSIVE_DARK_MODE: renders the standard title bar in dark mode
+    // (white caption text/glyphs) while preserving the native red close button.
+    private const uint DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+
+    [LibraryImport("dwmapi.dll")]
+    private static partial int DwmSetWindowAttribute(nint hWnd, uint dwAttribute, ref int pvAttribute, int cbAttribute);
 
     [LibraryImport("comctl32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
