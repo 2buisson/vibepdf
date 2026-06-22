@@ -81,11 +81,6 @@ public sealed partial class MainWindow : Window
         titleBar.ButtonInactiveForegroundColor = inactiveForeground;
     }
 
-    private void FileListView_SelectionChanged(object sender, Microsoft.UI.Xaml.Controls.SelectionChangedEventArgs e)
-    {
-        ViewModel.SelectedFile = FileListView.SelectedItem as Models.PdfFileItem;
-    }
-
     private void GridSplitter_PointerEntered(object sender, PointerRoutedEventArgs e)
     {
         SetSizeWestEastCursor();

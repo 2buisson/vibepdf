@@ -80,7 +80,7 @@
                     x:Name="FileListView"
                     ItemsSource="{x:Bind ViewModel.Files, Mode=OneWay}"
                     SelectionMode="Single"
-                    SelectionChanged="FileListView_SelectionChanged"
+                    SelectedItem="{x:Bind ViewModel.SelectedFile, Mode=TwoWay}"
                     CanDragItems="{x:Bind ViewModel.CanReorderFiles, Mode=OneWay}"
                     AllowDrop="{x:Bind ViewModel.CanReorderFiles, Mode=OneWay}"
                     CanReorderItems="{x:Bind ViewModel.CanReorderFiles, Mode=OneWay}"

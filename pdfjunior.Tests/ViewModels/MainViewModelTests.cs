@@ -429,7 +429,7 @@ public class MainViewModelTests
     // --- Remove (reorder is drag-and-drop in the ListView; no view-model command) ---
 
     [Fact]
-    public void Remove_SelectedFile_RemovedAndSelectionCleared()
+    public void Remove_FirstSelectedFile_SelectsFileBelow()
     {
         var vm = CreateViewModel();
         var a = new PdfFileItem(@"C:\test\a.pdf");
@@ -442,6 +442,40 @@ public class MainViewModelTests
 
         Assert.DoesNotContain(a, vm.Files);
         Assert.Single(vm.Files);
+        Assert.Same(b, vm.SelectedFile); // file below slides up into the removed slot
+    }
+
+    [Fact]
+    public void Remove_MiddleSelectedFile_SelectsFileBelow()
+    {
+        var vm = CreateViewModel();
+        var a = new PdfFileItem(@"C:\test\a.pdf");
+        var b = new PdfFileItem(@"C:\test\b.pdf");
+        var c = new PdfFileItem(@"C:\test\c.pdf");
+        vm.Files.Add(a);
+        vm.Files.Add(b);
+        vm.Files.Add(c);
+        vm.SelectedFile = b;
+
+        vm.RemoveCommand.Execute(null);
+
+        Assert.Equal(new[] { a, c }, vm.Files);
+        Assert.Same(c, vm.SelectedFile); // c shifts up into b's old index
+    }
+
+    [Fact]
+    public void Remove_LastSelectedFile_ClearsSelection()
+    {
+        var vm = CreateViewModel();
+        var a = new PdfFileItem(@"C:\test\a.pdf");
+        var b = new PdfFileItem(@"C:\test\b.pdf");
+        vm.Files.Add(a);
+        vm.Files.Add(b);
+        vm.SelectedFile = b; // last row → nothing below
+
+        vm.RemoveCommand.Execute(null);
+
+        Assert.Equal(new[] { a }, vm.Files);
         Assert.Null(vm.SelectedFile);
     }
 

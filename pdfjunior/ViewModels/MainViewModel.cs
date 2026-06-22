@@ -450,12 +450,18 @@ public partial class MainViewModel : ObservableObject
         var item = SelectedFile;
         if (item is null) return;
 
+        var index = Files.IndexOf(item);
+
         // Cancel any in-flight validation so the semaphore slot frees and no status is
         // written back to the removed item (a removed item's late completion is dropped).
         if (_validationCts.TryGetValue(item, out var cts))
             cts.Cancel();
 
-        Files.Remove(item);  // ListView auto-deselects the removed item
-        SelectedFile = null; // explicit clear — makes the VM correct without a ListView
+        Files.Remove(item);
+
+        // Removal shifts every later row up by one, so the file that was directly
+        // below now sits at the removed item's old index. Select it for continuity;
+        // if the removed row was last (index == Count) there is nothing below → clear.
+        SelectedFile = index < Files.Count ? Files[index] : null;
     }
 }
