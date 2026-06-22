@@ -27,7 +27,6 @@ public partial class MainViewModel : ObservableObject
     private string? _lastOutputFolder;          // captured on success; used by Open folder
     private CancellationTokenSource? _previewCts; // single in-flight first-page render; cancel on every selection/status change
     private CancellationTokenSource? _mergeCts;  // created per merge (close-guard cancels it in 2.3)
-    private DispatcherQueueTimer? _successDismissTimer; // one-shot ~8 s auto-dismiss (UI thread only)
 
     public ObservableCollection<PdfFileItem> Files { get; } = [];
 
@@ -418,28 +417,14 @@ public partial class MainViewModel : ObservableObject
     {
         IsErrorBannerOpen = false;
         SuccessBannerText = text;
-        IsSuccessBannerOpen = true;
-        StartSuccessAutoDismiss(); // ~8 s one-shot
+        IsSuccessBannerOpen = true; // stays open until the user dismisses it or presses Merge again (AC #11)
     }
 
     private void ShowError(string text)
     {
         IsSuccessBannerOpen = false;
         ErrorBannerText = text;
-        IsErrorBannerOpen = true;  // manual dismiss only — no auto-dismiss
-    }
-
-    // Success auto-dismiss ~8 s (AC #8). UI-thread only; in the test host
-    // (_dispatcherQueue is null) auto-dismiss is F5-verified.
-    private void StartSuccessAutoDismiss()
-    {
-        if (_dispatcherQueue is null) return;
-        _successDismissTimer?.Stop();
-        _successDismissTimer = _dispatcherQueue.CreateTimer();
-        _successDismissTimer.Interval = TimeSpan.FromSeconds(8);
-        _successDismissTimer.IsRepeating = false;
-        _successDismissTimer.Tick += (_, _) => IsSuccessBannerOpen = false;
-        _successDismissTimer.Start();
+        IsErrorBannerOpen = true;  // manual dismiss only
     }
 
     [RelayCommand]

@@ -110,17 +110,18 @@
             PointerMoved="GridSplitter_PointerMoved"
             PointerReleased="GridSplitter_PointerReleased" />
 
-        <!-- Preview panel: merge banners (row 0), preview content (row 1),
-             action bar (row 2). -->
+        <!-- Preview panel: preview content (row 0), merge banners (row 1),
+             action bar (row 2). The info bar sits directly above the action bar. -->
         <Grid Grid.Column="2">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!-- Row 0: Merge banners (success / error) + determinate progress bar -->
-            <StackPanel Grid.Row="0" Spacing="4" Padding="16,8,16,0">
+            <!-- Row 1: Merge banners (success / error) + determinate progress bar,
+                 sitting directly above the action bar -->
+            <StackPanel Grid.Row="1" Spacing="4" Padding="16,0,16,8">
                 <InfoBar
                     Severity="Success"
                     IsOpen="{x:Bind ViewModel.IsSuccessBannerOpen, Mode=TwoWay}"
@@ -143,10 +144,10 @@
                     Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.IsProgressVisible), Mode=OneWay}" />
             </StackPanel>
 
-            <!-- Row 1: preview content (image card / placeholder, overlapping) -->
+            <!-- Row 0: preview content (image card / placeholder, overlapping) -->
             <!-- Valid file: first-page image centered in a 300px card -->
             <Border
-                Grid.Row="1"
+                Grid.Row="0"
                 Width="300"
                 Padding="8"
                 HorizontalAlignment="Center"
@@ -166,7 +167,7 @@
             </Border>
 
             <TextBlock
-                Grid.Row="1"
+                Grid.Row="0"
                 Text="{x:Bind ViewModel.PreviewPlaceholderText, Mode=OneWay}"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
