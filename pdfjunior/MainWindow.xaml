@@ -15,24 +15,55 @@
         <MicaBackdrop />
     </Window.SystemBackdrop>
 
+    <!-- Content area: sidebar + preview. The preview panel also hosts the
+         merge banners and action bar. -->
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition x:Name="SidebarColumn" Width="280" MinWidth="200" MaxWidth="600" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
 
-        <!-- Row 0: Content area (sidebar + preview) -->
-        <Grid Grid.Row="0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition x:Name="SidebarColumn" Width="280" MinWidth="200" MaxWidth="600" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
+        <!-- Sidebar -->
+        <Border Grid.Column="0" Background="{ThemeResource SolidBackgroundFillColorBaseAltBrush}">
+            <Border.Shadow>
+                <ThemeShadow />
+            </Border.Shadow>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
 
-            <!-- Sidebar -->
-            <Grid Grid.Column="0">
-                <ListView
+                <!-- File-list command bar: Add / Remove act on the list below.
+                 Always visible (even when empty) so the first file can be added.
+                 Disabled state comes from the bound commands' CanExecute. -->
+                <CommandBar
+                Grid.Row="0"
+                Background="Transparent"
+                IsOpen="False"
+                DefaultLabelPosition="Right"
+                OverflowButtonVisibility="Collapsed"
+                HorizontalAlignment="Left">
+                    <AppBarButton
+                    Label="Add PDF(s)"
+                    Command="{x:Bind ViewModel.AddFilesCommand, Mode=OneTime}">
+                        <AppBarButton.Icon>
+                            <SymbolIcon Symbol="Add" />
+                        </AppBarButton.Icon>
+                    </AppBarButton>
+                    <AppBarButton
+                    Label="Remove"
+                    Command="{x:Bind ViewModel.RemoveCommand, Mode=OneTime}">
+                        <AppBarButton.Icon>
+                            <SymbolIcon Symbol="Delete" />
+                        </AppBarButton.Icon>
+                    </AppBarButton>
+                </CommandBar>
+
+                <!-- File list + empty placeholder (overlapping, visibility-toggled) -->
+                <Grid Grid.Row="1">
+                    <ListView
                     x:Name="FileListView"
                     ItemsSource="{x:Bind ViewModel.Files, Mode=OneWay}"
                     SelectionMode="Single"
@@ -41,138 +72,126 @@
                     AllowDrop="{x:Bind ViewModel.CanReorderFiles, Mode=OneWay}"
                     CanReorderItems="{x:Bind ViewModel.CanReorderFiles, Mode=OneWay}"
                     Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.HasFiles), Mode=OneWay}">
-                    <ListView.ItemTemplate>
-                        <DataTemplate x:DataType="models:PdfFileItem">
-                            <StackPanel Padding="4,8">
-                                <TextBlock
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="models:PdfFileItem">
+                                <StackPanel Padding="4,8">
+                                    <TextBlock
                                     Text="{x:Bind DisplayName, Mode=OneTime}"
                                     Style="{StaticResource BodyTextBlockStyle}"
                                     TextTrimming="CharacterEllipsis" />
-                                <TextBlock
+                                    <TextBlock
                                     Text="{x:Bind local:MainWindow.FormatStatus(Status, PageCount), Mode=OneWay}"
                                     Style="{StaticResource CaptionTextBlockStyle}"
                                     Foreground="{x:Bind local:MainWindow.StatusForeground(Status), Mode=OneWay}" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </ListView.ItemTemplate>
-                </ListView>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
 
-                <TextBlock
+                    <TextBlock
                     Text="{x:Bind strings:UiStrings.EmptyFileListPlaceholder}"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                     Visibility="{x:Bind local:MainWindow.BoolToVisibilityInverse(ViewModel.HasFiles), Mode=OneWay}" />
-            </Grid>
-
-            <!-- GridSplitter -->
-            <Border
-                x:Name="GridSplitter"
-                Grid.Column="1"
-                Width="8"
-                Background="Transparent"
-                PointerEntered="GridSplitter_PointerEntered"
-                PointerExited="GridSplitter_PointerExited"
-                PointerPressed="GridSplitter_PointerPressed"
-                PointerMoved="GridSplitter_PointerMoved"
-                PointerReleased="GridSplitter_PointerReleased" />
-
-            <!-- Preview area -->
-            <Grid Grid.Column="2">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-
-                <!-- Preview toolbar (reorder is drag-and-drop in the file list) -->
-                <StackPanel
-                    Grid.Row="0"
-                    Orientation="Horizontal"
-                    HorizontalAlignment="Right"
-                    Padding="8,4">
-                    <Button
-                        Content="&#xE74D;"
-                        FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                        ToolTipService.ToolTip="Remove"
-                        Command="{x:Bind ViewModel.RemoveCommand, Mode=OneTime}" />
-                </StackPanel>
-
-                <!-- Preview content -->
-                <Grid Grid.Row="1">
-                    <!-- Valid file: first-page image centered in a 300px card -->
-                    <Border
-                        Width="300"
-                        Padding="8"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                        BorderThickness="1"
-                        CornerRadius="8"
-                        Translation="0,0,32"
-                        Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.ShowPreviewImage), Mode=OneWay}">
-                        <Border.Shadow>
-                            <ThemeShadow />
-                        </Border.Shadow>
-                        <Image
-                            Source="{x:Bind ViewModel.PreviewImage, Mode=OneWay}"
-                            Stretch="Uniform" />
-                    </Border>
-
-                    <TextBlock
-                        Text="{x:Bind ViewModel.PreviewPlaceholderText, Mode=OneWay}"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                        Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.ShowPreviewPlaceholder), Mode=OneWay}" />
                 </Grid>
             </Grid>
-        </Grid>
+        </Border>
 
-        <!-- Row 1: Merge banners (success / error) + determinate progress bar -->
-        <StackPanel Grid.Row="1" Spacing="4" Padding="16,0">
-            <InfoBar
-                Severity="Success"
-                IsOpen="{x:Bind ViewModel.IsSuccessBannerOpen, Mode=TwoWay}"
-                Message="{x:Bind ViewModel.SuccessBannerText, Mode=OneWay}"
-                IsClosable="True">
-                <InfoBar.ActionButton>
-                    <Button
-                        Content="{x:Bind strings:UiStrings.MergeSuccessOpenFolder}"
-                        Command="{x:Bind ViewModel.OpenFolderCommand, Mode=OneTime}" />
-                </InfoBar.ActionButton>
-            </InfoBar>
-            <InfoBar
-                Severity="Error"
-                IsOpen="{x:Bind ViewModel.IsErrorBannerOpen, Mode=TwoWay}"
-                Message="{x:Bind ViewModel.ErrorBannerText, Mode=OneWay}"
-                IsClosable="True" />
-            <ProgressBar
-                Minimum="0" Maximum="100"
-                Value="{x:Bind ViewModel.MergeProgress, Mode=OneWay}"
-                Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.IsProgressVisible), Mode=OneWay}" />
-        </StackPanel>
+        <!-- GridSplitter -->
+        <Border
+            x:Name="GridSplitter"
+            Grid.Column="1"
+            Width="8"
+            Background="Transparent"
+            PointerEntered="GridSplitter_PointerEntered"
+            PointerExited="GridSplitter_PointerExited"
+            PointerPressed="GridSplitter_PointerPressed"
+            PointerMoved="GridSplitter_PointerMoved"
+            PointerReleased="GridSplitter_PointerReleased" />
 
-        <!-- Row 2: Action bar -->
-        <Grid Grid.Row="2" Padding="16,8">
-            <StackPanel
-                Orientation="Horizontal"
-                HorizontalAlignment="Right"
-                Spacing="8">
-                <Button
-                    Content="Add PDF(s)"
-                    Command="{x:Bind ViewModel.AddFilesCommand, Mode=OneTime}" />
-                <!-- Border wrapper stays hit-test-visible so the disabled-Merge tooltip
-                     (MC-10/11/12) renders; WinUI does not show a tooltip on a disabled Button. -->
-                <Border
-                    ToolTipService.ToolTip="{x:Bind ViewModel.MergeDisabledReason, Mode=OneWay}"
-                    Background="Transparent">
-                    <Button
-                        Content="Merge"
-                        Style="{StaticResource AccentButtonStyle}"
-                        Command="{x:Bind ViewModel.MergeCommand, Mode=OneTime}" />
-                </Border>
+        <!-- Preview panel: merge banners (row 0), preview content (row 1),
+             action bar (row 2). -->
+        <Grid Grid.Column="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Row 0: Merge banners (success / error) + determinate progress bar -->
+            <StackPanel Grid.Row="0" Spacing="4" Padding="16,8,16,0">
+                <InfoBar
+                    Severity="Success"
+                    IsOpen="{x:Bind ViewModel.IsSuccessBannerOpen, Mode=TwoWay}"
+                    Message="{x:Bind ViewModel.SuccessBannerText, Mode=OneWay}"
+                    IsClosable="True">
+                    <InfoBar.ActionButton>
+                        <Button
+                            Content="{x:Bind strings:UiStrings.MergeSuccessOpenFolder}"
+                            Command="{x:Bind ViewModel.OpenFolderCommand, Mode=OneTime}" />
+                    </InfoBar.ActionButton>
+                </InfoBar>
+                <InfoBar
+                    Severity="Error"
+                    IsOpen="{x:Bind ViewModel.IsErrorBannerOpen, Mode=TwoWay}"
+                    Message="{x:Bind ViewModel.ErrorBannerText, Mode=OneWay}"
+                    IsClosable="True" />
+                <ProgressBar
+                    Minimum="0" Maximum="100"
+                    Value="{x:Bind ViewModel.MergeProgress, Mode=OneWay}"
+                    Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.IsProgressVisible), Mode=OneWay}" />
             </StackPanel>
+
+            <!-- Row 1: preview content (image card / placeholder, overlapping) -->
+            <!-- Valid file: first-page image centered in a 300px card -->
+            <Border
+                Grid.Row="1"
+                Width="300"
+                Padding="8"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Translation="0,0,32"
+                Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.ShowPreviewImage), Mode=OneWay}">
+                <Border.Shadow>
+                    <ThemeShadow />
+                </Border.Shadow>
+                <Image
+                    Source="{x:Bind ViewModel.PreviewImage, Mode=OneWay}"
+                    Stretch="Uniform" />
+            </Border>
+
+            <TextBlock
+                Grid.Row="1"
+                Text="{x:Bind ViewModel.PreviewPlaceholderText, Mode=OneWay}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.ShowPreviewPlaceholder), Mode=OneWay}" />
+
+            <!-- Row 2: Action bar -->
+            <Grid Grid.Row="2" Padding="16,8">
+                <StackPanel
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="8">
+                    <!-- Add PDF(s) now lives in the file-list CommandBar. -->
+                    <!-- Border wrapper stays hit-test-visible so the disabled-Merge tooltip
+                         (MC-10/11/12) renders; WinUI does not show a tooltip on a disabled Button. -->
+                    <Border
+                        ToolTipService.ToolTip="{x:Bind ViewModel.MergeDisabledReason, Mode=OneWay}"
+                        Background="Transparent">
+                        <Button
+                            Content="Merge"
+                            Style="{StaticResource AccentButtonStyle}"
+                            Command="{x:Bind ViewModel.MergeCommand, Mode=OneTime}" />
+                    </Border>
+                </StackPanel>
+            </Grid>
         </Grid>
     </Grid>
 </Window>
