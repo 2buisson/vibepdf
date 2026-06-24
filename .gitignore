@@ -1,4 +1,4 @@
-# .gitignore for the pdfjunior solution (.NET 8 / WinUI 3 / MSIX, Visual Studio)
+# .gitignore for the vibepdf solution (.NET 8 / WinUI 3 / MSIX, Visual Studio)
 # Solution-level ignores. Applies recursively to all projects in the solution.
 
 ## Build results

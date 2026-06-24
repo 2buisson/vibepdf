@@ -1,0 +1,1 @@
+Move the info bar (success and error) to the top of the window just bellow the title bar, above all panels and window content. Horizontally centered.

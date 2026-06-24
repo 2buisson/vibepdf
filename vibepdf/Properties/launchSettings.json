@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "vibepdf (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "vibepdf (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
