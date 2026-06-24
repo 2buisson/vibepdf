@@ -46,9 +46,10 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!-- File-list command bar: Add / Remove act on the list below.
+            <!-- File-list command bar: Add acts on the list below.
                  Always visible (even when empty) so the first file can be added.
                  Disabled state comes from the bound commands' CanExecute. -->
             <CommandBar
@@ -63,13 +64,6 @@
                     Command="{x:Bind ViewModel.AddFilesCommand, Mode=OneTime}">
                     <AppBarButton.Icon>
                         <SymbolIcon Symbol="Add" />
-                    </AppBarButton.Icon>
-                </AppBarButton>
-                <AppBarButton
-                    Label="Remove"
-                    Command="{x:Bind ViewModel.RemoveCommand, Mode=OneTime}">
-                    <AppBarButton.Icon>
-                        <SymbolIcon Symbol="Delete" />
                     </AppBarButton.Icon>
                 </AppBarButton>
             </CommandBar>
@@ -108,6 +102,23 @@
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                     Visibility="{x:Bind local:MainWindow.BoolToVisibilityInverse(ViewModel.HasFiles), Mode=OneWay}" />
             </Grid>
+
+            <!-- Remove acts on the selected file in the list above. -->
+            <CommandBar
+                Grid.Row="2"
+                Background="Transparent"
+                IsOpen="False"
+                DefaultLabelPosition="Collapsed"
+                OverflowButtonVisibility="Collapsed"
+                HorizontalAlignment="Left">
+                <AppBarButton
+                    Label="Remove"
+                    Command="{x:Bind ViewModel.RemoveCommand, Mode=OneTime}">
+                    <AppBarButton.Icon>
+                        <SymbolIcon Symbol="Delete" />
+                    </AppBarButton.Icon>
+                </AppBarButton>
+            </CommandBar>
         </Grid>
 
         <!-- GridSplitter (row 1 only, so it never overlaps the title bar strip) -->
