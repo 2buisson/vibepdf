@@ -134,23 +134,13 @@
             PointerMoved="GridSplitter_PointerMoved"
             PointerReleased="GridSplitter_PointerReleased" />
 
-        <!-- Preview panel: preview content (row 0), merge banners (row 1),
-             action bar (row 2). The info bar sits directly above the action bar. -->
+        <!-- Preview panel: preview content (row 0), action bar (row 1).
+             Merge progress shows in the title bar; the merge result in a modal ContentDialog. -->
         <Grid Grid.Row="1" Grid.Column="2">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-
-            <!-- Row 1: determinate merge progress bar, sitting directly above the
-                 action bar. The merge result is shown in a modal ContentDialog. -->
-            <StackPanel Grid.Row="1" Spacing="4" Padding="16,0,16,8">
-                <ProgressBar
-                    Minimum="0" Maximum="100"
-                    Value="{x:Bind ViewModel.MergeProgress, Mode=OneWay}"
-                    Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.IsProgressVisible), Mode=OneWay}" />
-            </StackPanel>
 
             <!-- Row 0: preview content (image card / placeholder, overlapping) -->
             <!-- Valid file: first-page image centered in a 300px card -->
@@ -182,8 +172,8 @@
                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                 Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.ShowPreviewPlaceholder), Mode=OneWay}" />
 
-            <!-- Row 2: Action bar -->
-            <Grid Grid.Row="2" Padding="16,8">
+            <!-- Row 1: Action bar -->
+            <Grid Grid.Row="1" Padding="16,8">
                 <StackPanel
                     Orientation="Horizontal"
                     HorizontalAlignment="Right"
@@ -213,7 +203,7 @@
             Grid.ColumnSpan="3"
             Background="Transparent">
             <TextBlock
-                Text="{x:Bind strings:UiStrings.AppTitle}"
+                Text="{x:Bind ViewModel.Title, Mode=OneWay}"
                 VerticalAlignment="Center"
                 Margin="16,0,0,0"
                 Style="{StaticResource CaptionTextBlockStyle}" />

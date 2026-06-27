@@ -5,6 +5,9 @@ public static class UiStrings
     // App / window title (also shown in the custom title bar)
     public const string AppTitle = "Vibe PDF";
 
+    // Custom title-bar text while a merge is in progress (format with app name + percent)
+    public const string AppTitleMergeProgress = "{0} — {1:0}%";
+
     // MC-1: Empty file list placeholder
     public const string EmptyFileListPlaceholder = "Add PDFs to get started";
 

@@ -50,6 +50,40 @@ public class MainViewModelTests
     }
 
     [Fact]
+    public void Title_NoMerge_IsAppName()
+    {
+        var vm = CreateViewModel();
+        Assert.Equal(UiStrings.AppTitle, vm.Title);
+    }
+
+    [Fact]
+    public void Title_Merging_ShowsPercent()
+    {
+        var vm = CreateViewModel();
+        vm.IsMerging = true;
+        vm.MergeProgress = 55;
+        Assert.Equal("Vibe PDF — 55%", vm.Title);
+    }
+
+    [Fact]
+    public void Title_FractionalProgress_RoundsToInteger()
+    {
+        var vm = CreateViewModel();
+        vm.IsMerging = true;
+        vm.MergeProgress = 33.33;
+        Assert.Equal("Vibe PDF — 33%", vm.Title);
+    }
+
+    [Fact]
+    public void Title_NotMerging_IgnoresProgressValue()
+    {
+        var vm = CreateViewModel();
+        vm.IsMerging = false;
+        vm.MergeProgress = 55;
+        Assert.Equal(UiStrings.AppTitle, vm.Title);
+    }
+
+    [Fact]
     public void MergeDisabledReason_NoFiles_ReturnsNoFilesMessage()
     {
         var vm = CreateViewModel();

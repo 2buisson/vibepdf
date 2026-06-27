@@ -49,15 +49,20 @@ public partial class MainViewModel : ObservableObject
     // --- Merge UI-lock / progress state (story 2.2) ---
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Title))]
     public partial bool IsMerging { get; set; }
 
     public bool CanReorderFiles => !IsMerging;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Title))]
     public partial double MergeProgress { get; set; }
 
-    [ObservableProperty]
-    public partial bool IsProgressVisible { get; set; }
+    // Custom title-bar text. While a merge is in progress it shows the live
+    // percentage ("Vibe PDF — 55%"); otherwise just the app name.
+    public string Title => IsMerging
+        ? string.Format(UiStrings.AppTitleMergeProgress, UiStrings.AppTitle, MergeProgress)
+        : UiStrings.AppTitle;
 
     // Raised when a merge finishes (success or error). The View presents it in a
     // modal ContentDialog; the view model stays UI-control-agnostic.
@@ -346,9 +351,8 @@ public partial class MainViewModel : ObservableObject
             .ToList();
 
         _mergeCts = new CancellationTokenSource();
-        IsMerging = true;          // AC #4 — lock engages only AFTER confirm (AC #5)
         MergeProgress = 0;
-        var showProgress = StartProgressDelay(); // AC #6/#7 — reveal the bar only after 2 s
+        IsMerging = true;          // AC #4 — lock engages only AFTER confirm (AC #5); title shows 0% immediately
 
         try
         {
@@ -378,26 +382,10 @@ public partial class MainViewModel : ObservableObject
         }
         finally
         {
-            showProgress.Cancel();
-            IsProgressVisible = false;
-            IsMerging = false;     // AC #10 — UI unlocks; Files untouched (preserved)
+            IsMerging = false;     // AC #10 — UI unlocks; title reverts; Files untouched (preserved)
             _mergeCts.Dispose();
             _mergeCts = null;
         }
-    }
-
-    // Reveal the determinate progress bar only after a 2 s delay; cancelled the
-    // instant the merge finishes so sub-2 s merges show nothing (AC #6/#7).
-    private CancellationTokenSource StartProgressDelay()
-    {
-        var cts = new CancellationTokenSource();
-        _ = Task.Delay(TimeSpan.FromSeconds(2), cts.Token)
-                .ContinueWith(
-                    _ => RunOnUI(() => IsProgressVisible = true),
-                    cts.Token,
-                    TaskContinuationOptions.OnlyOnRanToCompletion,
-                    TaskScheduler.Default);
-        return cts;
     }
 
     private void RaiseMergeResult(MergeResultSeverity severity, string message) =>
