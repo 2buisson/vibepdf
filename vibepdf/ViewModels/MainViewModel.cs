@@ -46,7 +46,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     public partial BitmapImage? PreviewImage { get; set; }
 
-    // --- Merge UI-lock / progress / banner state (story 2.2) ---
+    // --- Merge UI-lock / progress state (story 2.2) ---
 
     [ObservableProperty]
     public partial bool IsMerging { get; set; }
@@ -59,17 +59,9 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     public partial bool IsProgressVisible { get; set; }
 
-    [ObservableProperty]
-    public partial bool IsSuccessBannerOpen { get; set; }
-
-    [ObservableProperty]
-    public partial string? SuccessBannerText { get; set; }
-
-    [ObservableProperty]
-    public partial bool IsErrorBannerOpen { get; set; }
-
-    [ObservableProperty]
-    public partial string? ErrorBannerText { get; set; }
+    // Raised when a merge finishes (success or error). The View presents it in a
+    // modal ContentDialog; the view model stays UI-control-agnostic.
+    public event EventHandler<MergeResultEventArgs>? MergeCompleted;
 
     partial void OnIsMergingChanged(bool value)
     {
@@ -344,10 +336,6 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanMerge))]
     private async Task MergeAsync()
     {
-        // AC #11 — Merge press clears any visible banner before the dialog opens.
-        IsSuccessBannerOpen = false;
-        IsErrorBannerOpen = false;
-
         var destination = await _filePickerService.PickSaveFileAsync(UiStrings.DefaultMergeFileName);
         if (destination is null)
             return; // FR-7: cancelling the Save dialog is a silent no-op (no lock engaged)
@@ -370,7 +358,7 @@ public partial class MainViewModel : ObservableObject
 
             if (outcome is MergeOutcome.Failure)
             {
-                ShowError(UiStrings.MergeErrorGeneric); // 2.2 = generic only; 2.3 refines
+                RaiseMergeResult(MergeResultSeverity.Error, UiStrings.MergeErrorGeneric); // 2.2 = generic only; 2.3 refines
                 return;
             }
 
@@ -378,15 +366,15 @@ public partial class MainViewModel : ObservableObject
             await _outputWriter.WriteAsync(buffer, destination);
 
             _lastOutputFolder = Path.GetDirectoryName(destination.Path);
-            ShowSuccess(string.Format(UiStrings.MergeSuccess, destination.Name)); // AC #8
+            RaiseMergeResult(MergeResultSeverity.Success, string.Format(UiStrings.MergeSuccess, destination.Name)); // AC #8
         }
         catch (OperationCanceledException)
         {
-            // Cooperative cancel (close-guard, 2.3). No banner this story.
+            // Cooperative cancel (close-guard, 2.3). No dialog.
         }
         catch
         {
-            ShowError(UiStrings.MergeErrorGeneric); // 2.2 generic; 2.3 maps specific reasons
+            RaiseMergeResult(MergeResultSeverity.Error, UiStrings.MergeErrorGeneric); // 2.2 generic; 2.3 maps specific reasons
         }
         finally
         {
@@ -412,30 +400,15 @@ public partial class MainViewModel : ObservableObject
         return cts;
     }
 
-    // Banner helpers enforce "at most one banner visible" (AC #8/#11).
-    private void ShowSuccess(string text)
-    {
-        IsErrorBannerOpen = false;
-        SuccessBannerText = text;
-        IsSuccessBannerOpen = true; // stays open until the user dismisses it or presses Merge again (AC #11)
-    }
+    private void RaiseMergeResult(MergeResultSeverity severity, string message) =>
+        MergeCompleted?.Invoke(this, new MergeResultEventArgs(severity, message));
 
-    private void ShowError(string text)
+    // Opens the folder captured on the last successful merge. Returns false when the
+    // folder is gone so the View can surface MC-19 inline and keep its dialog open.
+    public async Task<bool> TryOpenLastFolderAsync()
     {
-        IsSuccessBannerOpen = false;
-        ErrorBannerText = text;
-        IsErrorBannerOpen = true;  // manual dismiss only
-    }
-
-    [RelayCommand]
-    private async Task OpenFolderAsync()
-    {
-        if (_lastOutputFolder is null) return;
-        var ok = await _folderLauncher.LaunchFolderAsync(_lastOutputFolder);
-        if (!ok)
-        {
-            SuccessBannerText = UiStrings.FolderNotFound; // MC-19, shown inline in the open banner
-        }
+        if (_lastOutputFolder is null) return false;
+        return await _folderLauncher.LaunchFolderAsync(_lastOutputFolder);
     }
 
     // Reorder is handled by the file ListView's built-in drag-and-drop

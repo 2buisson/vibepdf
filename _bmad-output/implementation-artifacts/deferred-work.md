@@ -17,3 +17,10 @@
 - Bare catch in PdfValidationService classifies all unknown errors (including OOM, access-denied) as ErrorCorrupt [PdfValidationService.cs:23]
 - Task.Delay(200) in test WaitForValidation — timing-dependent; replace with deterministic sync when tests grow [MainViewModelTests.cs:263]
 - ~~Validation may write status to PdfFileItem after it has been removed from Files collection [MainViewModel.cs:162]~~ — RESOLVED in story 1-3: every `RunOnUI` status-write callback in `ValidateFileAsync` now guards with `if (!Files.Contains(item)) return;`
+
+## Deferred from: code review of spec-merge-result-dialog (2026-06-27)
+
+- No guard against a second concurrent `ContentDialog` (`async void` + unguarded `ShowAsync` throws `COMException`) — not reachable now (merge UI-lock + modal block re-entry); becomes reachable when story 2.3's close-guard dialog can overlap. Address with 2.3 [MainWindow.xaml.cs:91]
+- `MergeCompleted += OnMergeCompleted` is never unsubscribed — benign for a single-window app with a singleton VM; revisit if a second MainWindow can ever be created against the same VM [MainWindow.xaml.cs:38]
+- Repeated "Open folder" clicks (dialog stays open, button enabled) launch concurrent `LaunchFolderAsync` calls / multiple Explorer windows — minor UX; would need a re-entrancy guard [MainWindow.xaml.cs:83]
+- Spec Execution checklist says PrimaryButtonClick "takes a deferral" but the amendment, Design Notes, and code all use no deferral — reconcile the stale checklist text [spec-merge-result-dialog.md:53]

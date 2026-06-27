@@ -143,25 +143,9 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!-- Row 1: Merge banners (success / error) + determinate progress bar,
-                 sitting directly above the action bar -->
+            <!-- Row 1: determinate merge progress bar, sitting directly above the
+                 action bar. The merge result is shown in a modal ContentDialog. -->
             <StackPanel Grid.Row="1" Spacing="4" Padding="16,0,16,8">
-                <InfoBar
-                    Severity="Success"
-                    IsOpen="{x:Bind ViewModel.IsSuccessBannerOpen, Mode=TwoWay}"
-                    Message="{x:Bind ViewModel.SuccessBannerText, Mode=OneWay}"
-                    IsClosable="True">
-                    <InfoBar.ActionButton>
-                        <Button
-                            Content="{x:Bind strings:UiStrings.MergeSuccessOpenFolder}"
-                            Command="{x:Bind ViewModel.OpenFolderCommand, Mode=OneTime}" />
-                    </InfoBar.ActionButton>
-                </InfoBar>
-                <InfoBar
-                    Severity="Error"
-                    IsOpen="{x:Bind ViewModel.IsErrorBannerOpen, Mode=TwoWay}"
-                    Message="{x:Bind ViewModel.ErrorBannerText, Mode=OneWay}"
-                    IsClosable="True" />
                 <ProgressBar
                     Minimum="0" Maximum="100"
                     Value="{x:Bind ViewModel.MergeProgress, Mode=OneWay}"

@@ -326,18 +326,21 @@ public class MainViewModelTests
     public async Task Merge_SaveDialogCancelled_SilentNoOp()
     {
         // AC #8: cancelling the Save dialog (picker returns null) writes nothing,
-        // throws nothing, and leaves the app state unchanged.
+        // throws nothing, raises no result dialog, and leaves the app state unchanged.
         var vm = CreateViewModel();
         vm.Files.Add(new PdfFileItem(@"C:\test\a.pdf") { Status = ValidationStatus.Valid });
         _pickerService.PickSaveFileAsync(Arg.Any<string>()).Returns((StorageFile?)null);
+        var raised = false;
+        vm.MergeCompleted += (_, _) => raised = true;
 
         await vm.MergeCommand.ExecuteAsync(null);
 
+        Assert.False(raised);
         Assert.Single(vm.Files);
         Assert.True(vm.CanMerge);
     }
 
-    // --- Merge UI-lock & banners (story 2.2) ---
+    // --- Merge UI-lock & result dialog (story 2.2) ---
 
     [Fact]
     public void IsMerging_True_CanMergeFalse()
@@ -373,49 +376,21 @@ public class MainViewModelTests
     }
 
     [Fact]
-    public async Task MergePressed_ClearsSuccessBanner()
-    {
-        // AC #11: pressing Merge clears any visible banner before the Save dialog opens.
-        // Picker cancels (returns null) so no StorageFile is needed and no lock engages.
-        var vm = CreateViewModel();
-        vm.Files.Add(new PdfFileItem(@"C:\test\a.pdf") { Status = ValidationStatus.Valid });
-        vm.IsSuccessBannerOpen = true;
-        _pickerService.PickSaveFileAsync(Arg.Any<string>()).Returns((StorageFile?)null);
-
-        await vm.MergeCommand.ExecuteAsync(null);
-
-        Assert.False(vm.IsSuccessBannerOpen);
-        Assert.Single(vm.Files);     // list preserved
-        Assert.False(vm.IsMerging);  // no lock engaged on the cancel path
-    }
-
-    [Fact]
-    public async Task MergePressed_ClearsErrorBanner()
-    {
-        // AC #11: same as above for the error banner.
-        var vm = CreateViewModel();
-        vm.Files.Add(new PdfFileItem(@"C:\test\a.pdf") { Status = ValidationStatus.Valid });
-        vm.IsErrorBannerOpen = true;
-        _pickerService.PickSaveFileAsync(Arg.Any<string>()).Returns((StorageFile?)null);
-
-        await vm.MergeCommand.ExecuteAsync(null);
-
-        Assert.False(vm.IsErrorBannerOpen);
-        Assert.Single(vm.Files);
-        Assert.False(vm.IsMerging);
-    }
-
-    [Fact]
     public async Task OpenFolder_NoPriorMerge_SafeNoOp()
     {
-        // The happy path (folder gone → MC-19) needs a real StorageFile destination and is
-        // F5-verified. The null-guard path is unit-testable: with no captured output folder,
-        // Open folder is a no-op that never touches the launcher and never throws.
+        // The happy path (folder opens) and the folder-gone → MC-19 inline path need a
+        // real StorageFile destination and are F5-verified. The null-guard path is
+        // unit-testable: with no captured output folder, opening returns false, never
+        // touches the launcher, never throws, and raises no result dialog.
         var vm = CreateViewModel();
+        var raised = false;
+        vm.MergeCompleted += (_, _) => raised = true;
 
-        await vm.OpenFolderCommand.ExecuteAsync(null);
+        var opened = await vm.TryOpenLastFolderAsync();
 
+        Assert.False(opened);
         await _folderLauncher.DidNotReceive().LaunchFolderAsync(Arg.Any<string>());
+        Assert.False(raised);
     }
 
     [Fact]

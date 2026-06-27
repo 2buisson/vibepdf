@@ -69,6 +69,9 @@ public static class UiStrings
     // MC-19: Open folder — folder gone
     public const string FolderNotFound = "Folder not found";
 
+    // Merge result dialog — dismiss button
+    public const string DialogClose = "Close";
+
     // MC-20: Close guard — dialog title
     public const string CloseGuardTitle = "Merge in progress";
 

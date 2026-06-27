@@ -33,6 +33,10 @@ public sealed partial class MainWindow : Window
         ViewModel = App.Current.Services.GetRequiredService<MainViewModel>();
         InitializeComponent();
 
+        // The view model reports finished merges (and Open-folder failures) via an
+        // event; the View presents them in a modal ContentDialog.
+        ViewModel.MergeCompleted += OnMergeCompleted;
+
         Hwnd = WindowNative.GetWindowHandle(this);
         AppWindow.Resize(new SizeInt32(900, 640));
 
@@ -51,6 +55,40 @@ public sealed partial class MainWindow : Window
         {
             root.ActualThemeChanged += (_, _) => ApplyTitleBarTheme();
         }
+    }
+
+    // Show the merge outcome in a modal dialog. Title is always the app name so the
+    // success and error dialogs read consistently; the message carries the specifics.
+    // (An Open-folder failure is handled inline below, not raised through this event.)
+    private async void OnMergeCompleted(object? sender, MergeResultEventArgs e)
+    {
+        var dialog = new ContentDialog
+        {
+            XamlRoot = Content.XamlRoot,
+            Title = UiStrings.AppTitle,
+            Content = e.Message,
+            CloseButtonText = UiStrings.DialogClose,
+        };
+
+        if (Content is FrameworkElement root)
+            dialog.RequestedTheme = root.ActualTheme;
+
+        if (e.Severity == MergeResultSeverity.Success)
+        {
+            dialog.PrimaryButtonText = UiStrings.MergeSuccessOpenFolder;
+            dialog.DefaultButton = ContentDialogButton.Primary;
+
+            // "Open folder" must not dismiss the dialog. Cancel is set before the first
+            // await, so the dialog stays open and the continuation updates it in place.
+            dialog.PrimaryButtonClick += async (dlg, clickArgs) =>
+            {
+                clickArgs.Cancel = true;
+                if (!await ViewModel.TryOpenLastFolderAsync())
+                    dlg.Content = UiStrings.FolderNotFound; // MC-19, surfaced inline
+            };
+        }
+
+        await dialog.ShowAsync();
     }
 
     private void ApplyTitleBarTheme()
