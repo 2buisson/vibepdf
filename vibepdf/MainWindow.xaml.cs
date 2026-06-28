@@ -77,6 +77,14 @@ public sealed partial class MainWindow : Window
         UpdateMergeState();
 
         Hwnd = WindowNative.GetWindowHandle(this);
+
+        // WinUI 3 never assigns a window icon from the MSIX tile logos, so the
+        // taskbar thumbnail preview, Alt+Tab, and title bar would show a blank
+        // glyph. Set the window's HICON explicitly from the bundled .ico. Anchor
+        // to BaseDirectory (the install/output root) rather than a bare relative
+        // path, which would resolve against the launch working directory.
+        AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico"));
+
         AppWindow.Resize(new SizeInt32(900, 640));
 
         SetMinWindowSize();
