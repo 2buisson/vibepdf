@@ -303,6 +303,12 @@ public sealed partial class MainWindow : Window
         // DependencyObject); _previewCts + the ReferenceEquals guard drop a slow
         // render of file A that lands after the user has selected file B.
         var cts = _previewCts = new CancellationTokenSource();
+
+        // Show the spinner immediately (synchronously, before the first await) so the
+        // stale image of the previously selected file is cleared the instant selection
+        // changes — not left up until the new render lands.
+        SetPreview(PreviewState.Loading, null);
+
         try
         {
             var bitmap = await _previewService.RenderFirstPageAsync(item.Path, cts.Token);
@@ -332,9 +338,13 @@ public sealed partial class MainWindow : Window
     {
         PreviewImage.Source = image;
 
-        var showImage = state == PreviewState.Ready;
-        PreviewCard.Visibility = BoolToVisibility(showImage);
-        PreviewPlaceholder.Visibility = BoolToVisibilityInverse(showImage);
+        // Loading shows the spinner inside the card (in place of the image); Ready shows
+        // the rendered image. Both keep the card visible and hide the text placeholder.
+        var loading = state == PreviewState.Loading;
+        var showCard = state is PreviewState.Ready or PreviewState.Loading;
+        PreviewProgress.IsActive = loading; // IsActive=false also hides the ring (template-driven)
+        PreviewCard.Visibility = BoolToVisibility(showCard);
+        PreviewPlaceholder.Visibility = BoolToVisibilityInverse(showCard);
         PreviewPlaceholder.Text = state switch
         {
             PreviewState.None => Resources.GetString("EmptyPreviewPlaceholder"),

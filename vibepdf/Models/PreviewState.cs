@@ -1,3 +1,3 @@
 namespace vibepdf.Models;
 
-public enum PreviewState { None, Checking, Ready, ExcludedPassword, ExcludedCorrupt }
+public enum PreviewState { None, Checking, Loading, Ready, ExcludedPassword, ExcludedCorrupt }

@@ -158,9 +158,18 @@
                 <Border.Shadow>
                     <ThemeShadow />
                 </Border.Shadow>
-                <Image
-                    x:Name="PreviewImage"
-                    Stretch="Uniform" />
+                <!-- Image and spinner overlap: the spinner shows inside the card
+                     while the first page renders, then the image replaces it. -->
+                <Grid>
+                    <Image
+                        x:Name="PreviewImage"
+                        Stretch="Uniform" />
+                    <ProgressRing
+                        x:Name="PreviewProgress"
+                        IsActive="False"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center" />
+                </Grid>
             </Border>
 
             <TextBlock
