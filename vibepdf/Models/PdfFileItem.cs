@@ -1,8 +1,6 @@
-using CommunityToolkit.Mvvm.ComponentModel;
-
 namespace vibepdf.Models;
 
-public partial class PdfFileItem : ObservableObject
+public class PdfFileItem
 {
     public Guid Id { get; init; } = Guid.NewGuid();
 
@@ -10,11 +8,11 @@ public partial class PdfFileItem : ObservableObject
 
     public string DisplayName { get; init; } = string.Empty;
 
-    [ObservableProperty]
-    public partial ValidationStatus Status { get; set; } = ValidationStatus.Checking;
+    // Plain mutable state — the list row is refreshed imperatively when these change
+    // (no INotifyPropertyChanged; see MainWindow.RefreshRow).
+    public ValidationStatus Status { get; set; } = ValidationStatus.Checking;
 
-    [ObservableProperty]
-    public partial int? PageCount { get; set; }
+    public int? PageCount { get; set; }
 
     public PdfFileItem(string path)
     {
