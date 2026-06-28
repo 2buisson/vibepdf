@@ -203,12 +203,21 @@
             Grid.Column="0"
             Grid.ColumnSpan="3"
             Background="Transparent">
-            <TextBlock
-                x:Name="TitleText"
-                Text="{x:Bind strings:UiStrings.AppTitle}"
+            <StackPanel
+                Orientation="Horizontal"
                 VerticalAlignment="Center"
                 Margin="16,0,0,0"
-                Style="{StaticResource CaptionTextBlockStyle}" />
+                Spacing="8">
+                <Image
+                    Width="16"
+                    Height="16"
+                    Source="ms-appx:///Assets/Square44x44Logo.targetsize-48.png" />
+                <TextBlock
+                    x:Name="TitleText"
+                    Text="{x:Bind strings:UiStrings.AppTitle}"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource CaptionTextBlockStyle}" />
+            </StackPanel>
         </Grid>
     </Grid>
 </Window>
