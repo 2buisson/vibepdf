@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <!-- XAML x:Uid targets (key = "<x:Uid>.<Property>") -->
+  <data name="AddButton.Label" xml:space="preserve">
+    <value>Add PDF(s)</value>
+  </data>
+  <data name="RemoveButton.Label" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="MergeButton.Content" xml:space="preserve">
+    <value>Merge</value>
+  </data>
+  <data name="EmptyListPlaceholder.Text" xml:space="preserve">
+    <value>Add PDFs to get started</value>
+  </data>
+  <!-- Code-behind strings (ResourceLoader.GetString) -->
+  <data name="AppTitle" xml:space="preserve">
+    <value>Vibe PDF</value>
+  </data>
+  <data name="AppTitleMergeProgress" xml:space="preserve">
+    <value>{0} — {1:0}%</value>
+  </data>
+  <data name="EmptyPreviewPlaceholder" xml:space="preserve">
+    <value>Select a file to preview it</value>
+  </data>
+  <data name="StatusChecking" xml:space="preserve">
+    <value>Checking…</value>
+  </data>
+  <data name="StatusValidSingular" xml:space="preserve">
+    <value>{0} page</value>
+  </data>
+  <data name="StatusValidPlural" xml:space="preserve">
+    <value>{0} pages</value>
+  </data>
+  <data name="StatusErrorPassword" xml:space="preserve">
+    <value>Password protected</value>
+  </data>
+  <data name="StatusErrorCorrupt" xml:space="preserve">
+    <value>Could not read file</value>
+  </data>
+  <data name="StatusErrorTimeout" xml:space="preserve">
+    <value>Could not read file (timeout)</value>
+  </data>
+  <data name="PreviewChecking" xml:space="preserve">
+    <value>Checking…</value>
+  </data>
+  <data name="PreviewPasswordExclusion" xml:space="preserve">
+    <value>This file is password protected and will be excluded from the merge.</value>
+  </data>
+  <data name="PreviewCorruptExclusion" xml:space="preserve">
+    <value>This file could not be read and will be excluded from the merge.</value>
+  </data>
+  <data name="MergeDisabledNoFiles" xml:space="preserve">
+    <value>Add at least one PDF to merge</value>
+  </data>
+  <data name="MergeDisabledFlaggedFiles" xml:space="preserve">
+    <value>Remove files with errors before merging</value>
+  </data>
+  <data name="MergeDisabledStillChecking" xml:space="preserve">
+    <value>Waiting for files to finish checking</value>
+  </data>
+  <data name="DefaultMergeFileName" xml:space="preserve">
+    <value>merged.pdf</value>
+  </data>
+  <data name="MergeSuccess" xml:space="preserve">
+    <value>Merged successfully — {0}</value>
+  </data>
+  <data name="MergeSuccessOpenFolder" xml:space="preserve">
+    <value>Open folder</value>
+  </data>
+  <data name="MergeErrorDiskFull" xml:space="preserve">
+    <value>Merge failed — Not enough space on {0}.</value>
+  </data>
+  <data name="MergeErrorAccessDenied" xml:space="preserve">
+    <value>Merge failed — Access denied</value>
+  </data>
+  <data name="MergeErrorFileMissing" xml:space="preserve">
+    <value>Merge failed — File not found: {0}</value>
+  </data>
+  <data name="MergeErrorGeneric" xml:space="preserve">
+    <value>Merge failed. Try again or check the files.</value>
+  </data>
+  <data name="FolderNotFound" xml:space="preserve">
+    <value>Folder not found</value>
+  </data>
+  <data name="DialogClose" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="CloseGuardTitle" xml:space="preserve">
+    <value>Merge in progress</value>
+  </data>
+  <data name="CloseGuardBody" xml:space="preserve">
+    <value>A merge is still running. Closing now may leave an incomplete file at the destination.</value>
+  </data>
+  <data name="CloseGuardKeepMerging" xml:space="preserve">
+    <value>Keep merging</value>
+  </data>
+  <data name="CloseGuardCloseAnyway" xml:space="preserve">
+    <value>Close anyway</value>
+  </data>
+</root>

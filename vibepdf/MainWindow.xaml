@@ -5,11 +5,9 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:vibepdf"
     xmlns:models="using:vibepdf.Models"
-    xmlns:strings="using:vibepdf.Strings"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d"
-    Title="Vibe PDF">
+    mc:Ignorable="d">
 
     <Window.SystemBackdrop>
         <MicaBackdrop />
@@ -60,8 +58,8 @@
                 OverflowButtonVisibility="Collapsed"
                 HorizontalAlignment="Left">
                 <AppBarButton
+                    x:Uid="AddButton"
                     x:Name="AddButton"
-                    Label="Add PDF(s)"
                     Click="AddButton_Click">
                     <AppBarButton.Icon>
                         <SymbolIcon Symbol="Add" />
@@ -96,8 +94,8 @@
                 </ListView>
 
                 <TextBlock
+                    x:Uid="EmptyListPlaceholder"
                     x:Name="EmptyListPlaceholder"
-                    Text="{x:Bind strings:UiStrings.EmptyFileListPlaceholder}"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
@@ -112,8 +110,8 @@
                 OverflowButtonVisibility="Collapsed"
                 HorizontalAlignment="Left">
                 <AppBarButton
+                    x:Uid="RemoveButton"
                     x:Name="RemoveButton"
-                    Label="Remove"
                     Click="RemoveButton_Click">
                     <AppBarButton.Icon>
                         <SymbolIcon Symbol="Delete" />
@@ -185,8 +183,8 @@
                         x:Name="MergeButtonTooltipHost"
                         Background="Transparent">
                         <Button
+                            x:Uid="MergeButton"
                             x:Name="MergeButton"
-                            Content="Merge"
                             Style="{StaticResource AccentButtonStyle}"
                             Click="MergeButton_Click" />
                     </Border>
@@ -214,7 +212,6 @@
                     Source="ms-appx:///Assets/Square44x44Logo.targetsize-48.png" />
                 <TextBlock
                     x:Name="TitleText"
-                    Text="{x:Bind strings:UiStrings.AppTitle}"
                     VerticalAlignment="Center"
                     Style="{StaticResource CaptionTextBlockStyle}" />
             </StackPanel>

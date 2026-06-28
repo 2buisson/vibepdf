@@ -10,9 +10,9 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Microsoft.Windows.ApplicationModel.Resources;
 using vibepdf.Models;
 using vibepdf.Services;
-using vibepdf.Strings;
 using Windows.Graphics;
 using Windows.Storage;
 using Windows.UI;
@@ -24,6 +24,11 @@ public sealed partial class MainWindow : Window
 {
     private const int MinWidth = 640;
     private const int MinHeight = 480;
+
+    // Localized UI strings, resolved against the current OS display language (en-US
+    // default, fr-FR added) via the Windows App SDK MRT. Static so the static x:Bind
+    // helpers (FormatStatus/StatusForeground) can share it.
+    private static readonly ResourceLoader Resources = new();
 
     private bool _isSplitterDragging;
     private double _splitterDragStartX;
@@ -75,6 +80,8 @@ public sealed partial class MainWindow : Window
         UpdateEmptyPlaceholder();
         SetPreview(PreviewState.None, null);
         UpdateMergeState();
+        Title = Resources.GetString("AppTitle"); // window (Alt+Tab/taskbar) title; was a XAML literal
+        UpdateTitle();                            // custom title-bar text; was a XAML x:Bind
 
         Hwnd = WindowNative.GetWindowHandle(this);
 
@@ -330,10 +337,10 @@ public sealed partial class MainWindow : Window
         PreviewPlaceholder.Visibility = BoolToVisibilityInverse(showImage);
         PreviewPlaceholder.Text = state switch
         {
-            PreviewState.None => UiStrings.EmptyPreviewPlaceholder,
-            PreviewState.Checking => UiStrings.PreviewChecking,
-            PreviewState.ExcludedPassword => UiStrings.PreviewPasswordExclusion,
-            PreviewState.ExcludedCorrupt => UiStrings.PreviewCorruptExclusion,
+            PreviewState.None => Resources.GetString("EmptyPreviewPlaceholder"),
+            PreviewState.Checking => Resources.GetString("PreviewChecking"),
+            PreviewState.ExcludedPassword => Resources.GetString("PreviewPasswordExclusion"),
+            PreviewState.ExcludedCorrupt => Resources.GetString("PreviewCorruptExclusion"),
             _ => string.Empty,
         };
     }
@@ -356,13 +363,13 @@ public sealed partial class MainWindow : Window
     private string? MergeDisabledReason()
     {
         if (_files.Count == 0)
-            return UiStrings.MergeDisabledNoFiles;                 // MC-10 (empty)
+            return Resources.GetString("MergeDisabledNoFiles");        // MC-10 (empty)
         if (_files.Any(f => f.Status == ValidationStatus.Checking))
-            return UiStrings.MergeDisabledStillChecking;           // MC-12 (checking outranks flagged)
+            return Resources.GetString("MergeDisabledStillChecking");  // MC-12 (checking outranks flagged)
         if (!_files.Any(f => f.Status == ValidationStatus.Valid))
-            return UiStrings.MergeDisabledNoFiles;                 // MC-10 (all-flagged → "add a PDF")
+            return Resources.GetString("MergeDisabledNoFiles");        // MC-10 (all-flagged → "add a PDF")
         if (_files.Any(f => f.Status is ValidationStatus.ErrorPassword or ValidationStatus.ErrorCorrupt or ValidationStatus.ErrorTimeout))
-            return UiStrings.MergeDisabledFlaggedFiles;            // MC-11 (has valid + flagged)
+            return Resources.GetString("MergeDisabledFlaggedFiles");   // MC-11 (has valid + flagged)
         return null;                                               // enabled
     }
 
@@ -375,7 +382,7 @@ public sealed partial class MainWindow : Window
         StorageFile? destination;
         try
         {
-            destination = await _filePickerService.PickSaveFileAsync(UiStrings.DefaultMergeFileName);
+            destination = await _filePickerService.PickSaveFileAsync(Resources.GetString("DefaultMergeFileName"));
         }
         catch
         {
@@ -402,7 +409,7 @@ public sealed partial class MainWindow : Window
 
             if (outcome is MergeOutcome.Failure)
             {
-                ShowMergeResult(success: false, UiStrings.MergeErrorGeneric); // 2.2 = generic only; 2.3 refines
+                ShowMergeResult(success: false, Resources.GetString("MergeErrorGeneric")); // 2.2 = generic only; 2.3 refines
                 return;
             }
 
@@ -410,7 +417,7 @@ public sealed partial class MainWindow : Window
             await _outputWriter.WriteAsync(buffer, destination);
 
             _lastOutputFolder = Path.GetDirectoryName(destination.Path);
-            ShowMergeResult(success: true, string.Format(UiStrings.MergeSuccess, destination.Name)); // AC #8
+            ShowMergeResult(success: true, string.Format(Resources.GetString("MergeSuccess"), destination.Name)); // AC #8
         }
         catch (OperationCanceledException)
         {
@@ -418,7 +425,7 @@ public sealed partial class MainWindow : Window
         }
         catch
         {
-            ShowMergeResult(success: false, UiStrings.MergeErrorGeneric); // 2.2 generic; 2.3 maps specific reasons
+            ShowMergeResult(success: false, Resources.GetString("MergeErrorGeneric")); // 2.2 generic; 2.3 maps specific reasons
         }
         finally
         {
@@ -453,8 +460,8 @@ public sealed partial class MainWindow : Window
     // percentage ("Vibe PDF — 55%"); otherwise just the app name.
     private void UpdateTitle() =>
         TitleText.Text = _isMerging
-            ? string.Format(UiStrings.AppTitleMergeProgress, UiStrings.AppTitle, _mergeProgress)
-            : UiStrings.AppTitle;
+            ? string.Format(Resources.GetString("AppTitleMergeProgress"), Resources.GetString("AppTitle"), _mergeProgress)
+            : Resources.GetString("AppTitle");
 
     // Show the merge outcome in a modal dialog. Title is always the app name so the
     // success and error dialogs read consistently; the message carries the specifics.
@@ -468,9 +475,9 @@ public sealed partial class MainWindow : Window
         var dialog = new ContentDialog
         {
             XamlRoot = Content.XamlRoot,
-            Title = UiStrings.AppTitle,
+            Title = Resources.GetString("AppTitle"),
             Content = message,
-            CloseButtonText = UiStrings.DialogClose,
+            CloseButtonText = Resources.GetString("DialogClose"),
         };
 
         if (Content is FrameworkElement root)
@@ -478,7 +485,7 @@ public sealed partial class MainWindow : Window
 
         if (success)
         {
-            dialog.PrimaryButtonText = UiStrings.MergeSuccessOpenFolder;
+            dialog.PrimaryButtonText = Resources.GetString("MergeSuccessOpenFolder");
             dialog.DefaultButton = ContentDialogButton.Primary;
 
             // "Open folder" must not dismiss the dialog. Cancel is set before the first
@@ -487,7 +494,7 @@ public sealed partial class MainWindow : Window
             {
                 clickArgs.Cancel = true;
                 if (!await TryOpenLastFolderAsync())
-                    dlg.Content = UiStrings.FolderNotFound; // MC-19, surfaced inline
+                    dlg.Content = Resources.GetString("FolderNotFound"); // MC-19, surfaced inline
             };
         }
 
@@ -569,13 +576,13 @@ public sealed partial class MainWindow : Window
 
     public static string FormatStatus(ValidationStatus status, int? pageCount) => status switch
     {
-        ValidationStatus.Checking => UiStrings.StatusChecking,
+        ValidationStatus.Checking => Resources.GetString("StatusChecking"),
         ValidationStatus.Valid => string.Format(
-            pageCount == 1 ? UiStrings.StatusValidSingular : UiStrings.StatusValidPlural,
+            pageCount == 1 ? Resources.GetString("StatusValidSingular") : Resources.GetString("StatusValidPlural"),
             pageCount),
-        ValidationStatus.ErrorPassword => UiStrings.StatusErrorPassword,
-        ValidationStatus.ErrorCorrupt => UiStrings.StatusErrorCorrupt,
-        ValidationStatus.ErrorTimeout => UiStrings.StatusErrorTimeout,
+        ValidationStatus.ErrorPassword => Resources.GetString("StatusErrorPassword"),
+        ValidationStatus.ErrorCorrupt => Resources.GetString("StatusErrorCorrupt"),
+        ValidationStatus.ErrorTimeout => Resources.GetString("StatusErrorTimeout"),
         _ => string.Empty,
     };
 

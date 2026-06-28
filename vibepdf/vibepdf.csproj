@@ -17,6 +17,7 @@
 	<SelfContained>true</SelfContained>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <Nullable>enable</Nullable>
+    <DefaultLanguage>en-US</DefaultLanguage>
   </PropertyGroup>
 
   <ItemGroup>
