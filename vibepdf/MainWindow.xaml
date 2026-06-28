@@ -183,10 +183,16 @@
                         x:Name="MergeButtonTooltipHost"
                         Background="Transparent">
                         <Button
-                            x:Uid="MergeButton"
                             x:Name="MergeButton"
                             Style="{StaticResource AccentButtonStyle}"
-                            Click="MergeButton_Click" />
+                            Click="MergeButton_Click">
+                            <StackPanel
+                                Orientation="Horizontal"
+                                Spacing="8">
+                                <SymbolIcon Symbol="Send" />
+                                <TextBlock x:Uid="MergeButtonLabel" />
+                            </StackPanel>
+                        </Button>
                     </Border>
                 </StackPanel>
             </Grid>

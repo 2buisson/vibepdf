@@ -65,7 +65,7 @@
   <data name="RemoveButton.Label" xml:space="preserve">
     <value>Supprimer</value>
   </data>
-  <data name="MergeButton.Content" xml:space="preserve">
+  <data name="MergeButtonLabel.Text" xml:space="preserve">
     <value>Fusionner</value>
   </data>
   <data name="EmptyListPlaceholder.Text" xml:space="preserve">
