@@ -14,6 +14,7 @@ using vibepdf.Models;
 using vibepdf.Services;
 using vibepdf.Strings;
 using Windows.Graphics;
+using Windows.Storage;
 using Windows.UI;
 using WinRT.Interop;
 
@@ -99,7 +100,18 @@ public sealed partial class MainWindow : Window
 
     private async void AddButton_Click(object sender, RoutedEventArgs e)
     {
-        var paths = await _filePickerService.PickFilesAsync();
+        // async void: a picker fault would otherwise crash the app. Restore the pre-refactor
+        // non-crash semantics — swallow only the picker await, then no-op (no files added).
+        IReadOnlyList<string> paths;
+        try
+        {
+            paths = await _filePickerService.PickFilesAsync();
+        }
+        catch
+        {
+            return;
+        }
+
         if (paths.Count == 0)
             return;
 
@@ -292,7 +304,9 @@ public sealed partial class MainWindow : Window
         catch
         {
             // A file that validated Valid but fails to render falls back to the corrupt notice.
-            if (ReferenceEquals(item, _selectedFile))
+            // Same guard as the success path: a stale (cancelled) render that throws a non-OCE
+            // must not overwrite the freshly-rendered preview of a re-selected file.
+            if (!cts.IsCancellationRequested && ReferenceEquals(item, _selectedFile))
                 SetPreview(PreviewState.ExcludedCorrupt, null);
         }
     }
@@ -348,7 +362,18 @@ public sealed partial class MainWindow : Window
 
     private async void MergeButton_Click(object sender, RoutedEventArgs e)
     {
-        var destination = await _filePickerService.PickSaveFileAsync(UiStrings.DefaultMergeFileName);
+        // async void: swallow only the Save-picker await so a picker fault can't crash the app.
+        // Returns before any merge state engages — same silent no-op as cancelling the dialog.
+        StorageFile? destination;
+        try
+        {
+            destination = await _filePickerService.PickSaveFileAsync(UiStrings.DefaultMergeFileName);
+        }
+        catch
+        {
+            return;
+        }
+
         if (destination is null)
             return; // FR-7: cancelling the Save dialog is a silent no-op (no lock engaged)
 
