@@ -51,7 +51,7 @@
 
             <!-- File-list command bar: Add acts on the list below.
                  Always visible (even when empty) so the first file can be added.
-                 Disabled state comes from the bound commands' CanExecute. -->
+                 Disabled while a merge is in progress (set in code-behind). -->
             <CommandBar
                 Grid.Row="0"
                 Background="Transparent"
@@ -60,8 +60,9 @@
                 OverflowButtonVisibility="Collapsed"
                 HorizontalAlignment="Left">
                 <AppBarButton
+                    x:Name="AddButton"
                     Label="Add PDF(s)"
-                    Command="{x:Bind ViewModel.AddFilesCommand, Mode=OneTime}">
+                    Click="AddButton_Click">
                     <AppBarButton.Icon>
                         <SymbolIcon Symbol="Add" />
                     </AppBarButton.Icon>
@@ -72,13 +73,11 @@
             <Grid Grid.Row="1">
                 <ListView
                     x:Name="FileListView"
-                    ItemsSource="{x:Bind ViewModel.Files, Mode=OneWay}"
                     SelectionMode="Single"
-                    SelectedItem="{x:Bind ViewModel.SelectedFile, Mode=TwoWay}"
-                    CanDragItems="{x:Bind ViewModel.CanReorderFiles, Mode=OneWay}"
-                    AllowDrop="{x:Bind ViewModel.CanReorderFiles, Mode=OneWay}"
-                    CanReorderItems="{x:Bind ViewModel.CanReorderFiles, Mode=OneWay}"
-                    Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.HasFiles), Mode=OneWay}">
+                    SelectionChanged="FileListView_SelectionChanged"
+                    CanDragItems="True"
+                    AllowDrop="True"
+                    CanReorderItems="True">
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="models:PdfFileItem">
                             <StackPanel Padding="4,8">
@@ -87,20 +86,21 @@
                                     Style="{StaticResource BodyTextBlockStyle}"
                                     TextTrimming="CharacterEllipsis" />
                                 <TextBlock
-                                    Text="{x:Bind local:MainWindow.FormatStatus(Status, PageCount), Mode=OneWay}"
+                                    x:Name="StatusText"
+                                    Text="{x:Bind local:MainWindow.FormatStatus(Status, PageCount), Mode=OneTime}"
                                     Style="{StaticResource CaptionTextBlockStyle}"
-                                    Foreground="{x:Bind local:MainWindow.StatusForeground(Status), Mode=OneWay}" />
+                                    Foreground="{x:Bind local:MainWindow.StatusForeground(Status), Mode=OneTime}" />
                             </StackPanel>
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>
 
                 <TextBlock
+                    x:Name="EmptyListPlaceholder"
                     Text="{x:Bind strings:UiStrings.EmptyFileListPlaceholder}"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
-                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    Visibility="{x:Bind local:MainWindow.BoolToVisibilityInverse(ViewModel.HasFiles), Mode=OneWay}" />
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
             </Grid>
 
             <!-- Remove acts on the selected file in the list above. -->
@@ -112,8 +112,9 @@
                 OverflowButtonVisibility="Collapsed"
                 HorizontalAlignment="Left">
                 <AppBarButton
+                    x:Name="RemoveButton"
                     Label="Remove"
-                    Command="{x:Bind ViewModel.RemoveCommand, Mode=OneTime}">
+                    Click="RemoveButton_Click">
                     <AppBarButton.Icon>
                         <SymbolIcon Symbol="Delete" />
                     </AppBarButton.Icon>
@@ -145,6 +146,7 @@
             <!-- Row 0: preview content (image card / placeholder, overlapping) -->
             <!-- Valid file: first-page image centered in a 300px card -->
             <Border
+                x:Name="PreviewCard"
                 Grid.Row="0"
                 Width="300"
                 Padding="8"
@@ -154,23 +156,21 @@
                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                 BorderThickness="1"
                 CornerRadius="8"
-                Translation="0,0,32"
-                Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.ShowPreviewImage), Mode=OneWay}">
+                Translation="0,0,32">
                 <Border.Shadow>
                     <ThemeShadow />
                 </Border.Shadow>
                 <Image
-                    Source="{x:Bind ViewModel.PreviewImage, Mode=OneWay}"
+                    x:Name="PreviewImage"
                     Stretch="Uniform" />
             </Border>
 
             <TextBlock
+                x:Name="PreviewPlaceholder"
                 Grid.Row="0"
-                Text="{x:Bind ViewModel.PreviewPlaceholderText, Mode=OneWay}"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
-                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                Visibility="{x:Bind local:MainWindow.BoolToVisibility(ViewModel.ShowPreviewPlaceholder), Mode=OneWay}" />
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
 
             <!-- Row 1: Action bar -->
             <Grid Grid.Row="1" Padding="16,8">
@@ -182,12 +182,13 @@
                     <!-- Border wrapper stays hit-test-visible so the disabled-Merge tooltip
                          (MC-10/11/12) renders; WinUI does not show a tooltip on a disabled Button. -->
                     <Border
-                        ToolTipService.ToolTip="{x:Bind ViewModel.MergeDisabledReason, Mode=OneWay}"
+                        x:Name="MergeButtonTooltipHost"
                         Background="Transparent">
                         <Button
+                            x:Name="MergeButton"
                             Content="Merge"
                             Style="{StaticResource AccentButtonStyle}"
-                            Command="{x:Bind ViewModel.MergeCommand, Mode=OneTime}" />
+                            Click="MergeButton_Click" />
                     </Border>
                 </StackPanel>
             </Grid>
@@ -203,7 +204,8 @@
             Grid.ColumnSpan="3"
             Background="Transparent">
             <TextBlock
-                Text="{x:Bind ViewModel.Title, Mode=OneWay}"
+                x:Name="TitleText"
+                Text="{x:Bind strings:UiStrings.AppTitle}"
                 VerticalAlignment="Center"
                 Margin="16,0,0,0"
                 Style="{StaticResource CaptionTextBlockStyle}" />

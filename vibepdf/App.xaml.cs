@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using vibepdf.Services;
-using vibepdf.ViewModels;
 using WinRT.Interop;
 
 namespace vibepdf;
@@ -39,7 +38,6 @@ public partial class App : Application
         services.AddSingleton<IPdfMergeService, PdfSharpMergeService>();
         services.AddSingleton<IOutputWriter, OutputWriter>();
         services.AddSingleton<IFolderLauncher, FolderLauncher>();
-        services.AddSingleton<MainViewModel>();
 
         return services.BuildServiceProvider();
     }
