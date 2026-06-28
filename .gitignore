@@ -90,3 +90,6 @@ $RECYCLE.BIN/
 
 # Cursor
 .agents/
+
+# Custom
+intents/
