@@ -48,6 +48,7 @@ GeneratedArtifacts/
 *.cer
 *.pfx
 _pkginfo.txt
+Package.StoreAssociation.xml
 
 ## NuGet
 *.nupkg

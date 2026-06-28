@@ -9,15 +9,15 @@
   IgnorableNamespaces="uap rescap systemai">
 
   <Identity
-    Name="58a25890-f9bc-4f98-b9c0-82f6c6474ccd"
-    Publisher="CN=debui"
+    Name="AntoineDebuisson.VibePDF"
+    Publisher="CN=9B3E94ED-7927-463A-ABEC-0C820F591EC4"
     Version="1.0.0.0" />
 
-  <mp:PhoneIdentity PhoneProductId="58a25890-f9bc-4f98-b9c0-82f6c6474ccd" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
+  <mp:PhoneIdentity PhoneProductId="0434a31f-b143-42c9-a05a-8d62826414dc" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
     <DisplayName>Vibe PDF</DisplayName>
-    <PublisherDisplayName>debui</PublisherDisplayName>
+    <PublisherDisplayName>Antoine Debuisson</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
